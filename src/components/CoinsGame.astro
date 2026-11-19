@@ -1,0 +1,402 @@
+---
+import { COIN_COUNT } from '../lib/coins-game';
+---
+
+<coins-game class="game" role="region" aria-label="十二枚硬币小游戏">
+	<div class="game-heading">
+		<h3>动手试试：十二枚硬币</h3>
+		<span>剩余 <strong data-remaining>{COIN_COUNT}</strong> 枚</span>
+	</div>
+	<div class="setup" role="group" aria-label="开始新一局">
+		<button type="button" data-action="start-human" disabled>我先手</button>
+		<button type="button" data-action="start-computer" disabled>电脑先手</button>
+	</div>
+	<div class="board-scroll" tabindex="0" role="group" aria-label="硬币棋盘，按原始位置排列，可左右滚动">
+		<div class="coins">
+			{Array.from({ length: COIN_COUNT }, (_, index) => (
+				<button
+					type="button"
+					class="coin"
+					data-coin={index}
+					aria-label={`第 ${index + 1} 枚硬币`}
+					aria-pressed="false"
+					disabled
+				>
+					{index + 1}
+				</button>
+			))}
+		</div>
+	</div>
+	<p class="selection" data-selection></p>
+	<p class="feedback" data-feedback role="status" aria-live="polite" aria-atomic="true"></p>
+	<div class="actions">
+		<button type="button" class="confirm" data-action="confirm" disabled>取走所选硬币</button>
+		<button type="button" data-action="clear" disabled>取消选择</button>
+	</div>
+	<div class="game-status">
+		<p class="turn" data-turn role="status" aria-live="polite" aria-atomic="true">选择谁先手，开始新一局。</p>
+		<div class="move-log" tabindex="0" role="log" aria-label="对局记录" aria-live="polite" aria-relevant="additions" aria-atomic="false">
+			<ol data-moves></ol>
+		</div>
+	</div>
+	<details class="help">
+		<summary>玩法说明</summary>
+		<p>每次取 1 枚或原位置相邻的 2 枚，取走最后一枚者输；空位不合拢。</p>
+		<p>点选后确认取走，再次点选可取消。窄屏可横向滑动；点击先手按钮可重新开局。</p>
+	</details>
+	<noscript><p>请启用 JavaScript 来玩这个小游戏；下方的文章和解题说明仍可正常阅读。</p></noscript>
+</coins-game>
+
+<script>
+	import { INITIAL_BOARD, chooseMove, legalMoves } from '../lib/coins-game';
+
+	type Player = 'human' | 'computer';
+	type Phase = 'idle' | 'human' | 'thinking' | 'finished';
+
+	class CoinsGameElement extends HTMLElement {
+		#board = INITIAL_BOARD;
+		#selection = 0;
+		#winner: Player | null = null;
+		#moves: string[] = [];
+		#feedback = '';
+		#phase: Phase = 'idle';
+		#computerTimer: number | undefined;
+
+		constructor() {
+			super();
+			this.addEventListener('click', (event) => {
+				if (!(event.target instanceof Element)) return;
+				const button = event.target.closest<HTMLButtonElement>('button');
+				if (!button || button.disabled) return;
+
+				if (button.dataset.coin !== undefined) {
+					this.selectCoin(Number(button.dataset.coin));
+				} else if (button.dataset.action === 'confirm') {
+					this.play();
+				} else if (button.dataset.action === 'clear') {
+					if (this.#phase !== 'human') return;
+					this.#selection = 0;
+					this.#feedback = '';
+					this.render();
+					this.focusAvailableCoin();
+				} else if (button.dataset.action === 'start-human') {
+					this.reset('human');
+				} else if (button.dataset.action === 'start-computer') {
+					this.reset('computer');
+				}
+			});
+		}
+
+		connectedCallback() {
+			this.reset();
+		}
+
+		disconnectedCallback() {
+			this.cancelComputerTurn();
+		}
+
+		cancelComputerTurn() {
+			if (this.#computerTimer !== undefined) {
+				window.clearTimeout(this.#computerTimer);
+				this.#computerTimer = undefined;
+			}
+		}
+
+		get coins() {
+			return Array.from(this.querySelectorAll<HTMLButtonElement>('[data-coin]'));
+		}
+
+		reset(starter: Player | null = null) {
+			this.cancelComputerTurn();
+			this.#board = INITIAL_BOARD;
+			this.#selection = 0;
+			this.#winner = null;
+			this.#moves = [];
+			this.querySelector('[data-moves]')!.replaceChildren();
+			this.querySelector('.move-log')!.scrollTop = 0;
+			this.#feedback = '';
+			this.#phase = starter === null ? 'idle' : 'human';
+			if (starter === 'computer') {
+				this.scheduleComputerTurn();
+			} else {
+				this.render();
+			}
+			this.querySelector('.board-scroll')!.scrollLeft = 0;
+		}
+
+		selectCoin(index: number) {
+			if (this.#phase !== 'human') return;
+			const selection = this.#selection ^ (1 << index);
+			if (selection !== 0 && !legalMoves(this.#board).includes(selection)) {
+				this.#feedback = (this.#selection & (this.#selection - 1)) !== 0
+					? '每回合最多选择 2 枚硬币。请先取消一枚的选择。'
+					: '两枚硬币必须在原来的位置上相邻，不能跨过空位。';
+			} else {
+				this.#selection = selection;
+				this.#feedback = '';
+			}
+			this.render();
+		}
+
+		play() {
+			if (this.#phase !== 'human' || !legalMoves(this.#board).includes(this.#selection)) return;
+			const hadSubmitFocus = document.activeElement === this.querySelector('[data-action="confirm"]');
+			this.takeCoins(this.#selection, 'human');
+			this.#selection = 0;
+			this.#feedback = '';
+			if (this.#winner === null) {
+				this.scheduleComputerTurn();
+			} else {
+				this.render();
+			}
+			if (hadSubmitFocus) {
+				this.querySelector<HTMLElement>('.board-scroll')!.focus({ preventScroll: true });
+			}
+		}
+
+		scheduleComputerTurn() {
+			this.#phase = 'thinking';
+			this.render();
+			this.#computerTimer = window.setTimeout(() => {
+				this.#computerTimer = undefined;
+				if (!this.isConnected || this.#phase !== 'thinking') return;
+				const move = chooseMove(this.#board);
+				if (move !== null) this.takeCoins(move, 'computer');
+				if (this.#winner === null) this.#phase = 'human';
+				this.render();
+			}, 1500);
+		}
+
+		takeCoins(move: number, player: Player) {
+			this.#board ^= move;
+			this.#moves.push(`${player === 'human' ? '你' : '电脑'}取走了第 ${this.coinNumbers(move)} 枚。`);
+			if (this.#board === 0) {
+				this.#winner = player === 'human' ? 'computer' : 'human';
+				this.#phase = 'finished';
+			}
+		}
+
+		coinNumbers(mask: number) {
+			return this.coins.flatMap((_, index) => (mask & (1 << index)) ? [index + 1] : []).join('、');
+		}
+
+		focusAvailableCoin() {
+			const target = this.coins.find((coin) => !coin.disabled)
+				?? this.querySelector<HTMLButtonElement>('[data-action="start-human"]')!;
+			target.focus({ preventScroll: true });
+			target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		}
+
+		render() {
+			const humanTurn = this.#phase === 'human';
+			let remaining = 0;
+			for (const [index, coin] of this.coins.entries()) {
+				const present = (this.#board & (1 << index)) !== 0;
+				if (present) remaining++;
+				coin.disabled = !present || !humanTurn;
+				coin.dataset.removed = String(!present);
+				coin.setAttribute('aria-pressed', String((this.#selection & (1 << index)) !== 0));
+				coin.setAttribute('aria-label', `第 ${index + 1} 枚硬币${present ? '' : '，已取走'}`);
+			}
+			this.querySelector('[data-remaining]')!.textContent = String(remaining);
+			this.querySelector('.board-scroll')!.setAttribute('aria-busy', String(this.#phase === 'thinking'));
+			for (const button of this.querySelectorAll<HTMLButtonElement>('.setup button')) {
+				button.disabled = false;
+			}
+			this.querySelector<HTMLButtonElement>('[data-action="confirm"]')!.disabled = !humanTurn || this.#selection === 0;
+			this.querySelector<HTMLButtonElement>('[data-action="clear"]')!.disabled = !humanTurn || this.#selection === 0;
+			this.querySelector('[data-selection]')!.textContent = this.#selection
+				? `已选第 ${this.coinNumbers(this.#selection)} 枚。`
+				: '';
+			this.querySelector('[data-feedback]')!.textContent = this.#feedback;
+
+			const turn = {
+				idle: '选择谁先手，开始新一局。',
+				human: '轮到你了。',
+				thinking: '电脑思考中…',
+				finished: this.#winner === 'human'
+					? '你赢了！电脑取走了最后一枚硬币。'
+					: '电脑获胜。你取走了最后一枚硬币。',
+			}[this.#phase];
+			const status = this.querySelector('[data-turn]')!;
+			if (status.textContent !== turn) status.textContent = turn;
+			const moves = this.querySelector('[data-moves]')!;
+			const log = this.querySelector('.move-log')!;
+			const followLatest = moves.childElementCount < this.#moves.length
+				&& log.scrollHeight - log.clientHeight - log.scrollTop <= 2;
+			for (const move of this.#moves.slice(moves.childElementCount)) {
+				const entry = document.createElement('li');
+				entry.textContent = move;
+				moves.append(entry);
+			}
+			if (followLatest) log.scrollTop = log.scrollHeight;
+		}
+	}
+
+	customElements.define('coins-game', CoinsGameElement);
+</script>
+
+<style>
+	.game {
+		display: block;
+		margin: 1.5rem 0;
+		padding: 1.25rem;
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 12px;
+		background: #f8faff;
+	}
+	.game p {
+		margin: 0;
+		line-height: 1.65;
+	}
+	.game-heading, .setup, .actions {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+	.game-heading {
+		justify-content: space-between;
+		margin-bottom: 0.5rem;
+	}
+	[data-remaining] {
+		display: inline-block;
+		min-width: 2ch;
+		font-variant-numeric: tabular-nums;
+	}
+	.game h3 {
+		margin: 0;
+		font-size: 1.125em;
+	}
+	.setup, .actions {
+		margin: 1rem 0 0.5rem;
+	}
+	button {
+		min-height: 44px;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid #aeb8cc;
+		border-radius: 6px;
+		background: #fff;
+		color: inherit;
+		font: inherit;
+		transition: transform 100ms ease, filter 100ms ease, box-shadow 100ms ease;
+	}
+	button:enabled:active {
+		transform: translateY(1px);
+		filter: brightness(0.9);
+		box-shadow: inset 0 2px 3px rgb(0 0 0 / 18%);
+		transition: none;
+	}
+	button:not(:disabled) {
+		cursor: pointer;
+	}
+	button:focus-visible, .board-scroll:focus-visible, .move-log:focus-visible, summary:focus-visible {
+		outline: 3px solid var(--accent);
+		outline-offset: 3px;
+	}
+	.help {
+		margin-top: 0.5rem;
+		color: #526079;
+		font-size: 0.875em;
+	}
+	.help summary {
+		box-sizing: border-box;
+		min-height: 44px;
+		padding: 0.5rem 0;
+		cursor: pointer;
+	}
+	.help p {
+		margin: 0.5rem 0;
+	}
+	.board-scroll {
+		overflow-x: auto;
+		padding: 0.5rem;
+		margin: 1rem 0 0.25rem;
+	}
+	.coins {
+		display: grid;
+		grid-template-columns: repeat(12, 44px);
+		gap: 8px;
+		width: max-content;
+	}
+	.coin {
+		width: 44px;
+		height: 44px;
+		padding: 0;
+		border: 2px solid #ae852a;
+		border-radius: 50%;
+		background: #f9edc7;
+		color: #59400f;
+		font-weight: 700;
+	}
+	.coin[aria-pressed='true'] {
+		border-color: var(--accent);
+		background: var(--accent);
+		color: #fff;
+	}
+	.coin[data-removed='true'] {
+		border-style: dashed;
+		border-color: #b7c1d2;
+		background: transparent;
+		color: #68748a;
+		text-decoration: line-through;
+	}
+	.game .selection {
+		min-block-size: 1lh;
+		margin-top: 0.75rem;
+	}
+	.game .feedback {
+		min-block-size: 2lh;
+		color: #a32121;
+	}
+	[data-moves]:empty {
+		display: none;
+	}
+	.confirm {
+		border-color: var(--accent);
+		background: var(--accent);
+		color: #fff;
+	}
+	.actions button:disabled {
+		border-color: #c8d0df;
+		background: #e9edf5;
+		color: #69758b;
+	}
+	.game-status {
+		margin: 1rem 0 0.5rem;
+		padding-top: 1rem;
+		border-top: 1px solid rgb(var(--gray-light));
+	}
+	.turn {
+		min-block-size: 2lh;
+		font-weight: 700;
+	}
+	.move-log {
+		box-sizing: border-box;
+		height: 8rem;
+		margin-top: 0.5rem;
+		overflow-y: auto;
+		scrollbar-gutter: stable;
+	}
+	[data-moves] {
+		margin: 0;
+		padding-left: 1.75rem;
+		line-height: 1.65;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		button {
+			transition: none;
+		}
+		button:enabled:active {
+			transform: none;
+		}
+	}
+	@media (max-width: 480px) {
+		.game {
+			padding: 0.875rem;
+		}
+		.game .feedback {
+			min-block-size: 3lh;
+		}
+	}
+</style>

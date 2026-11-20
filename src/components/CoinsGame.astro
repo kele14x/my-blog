@@ -1,24 +1,33 @@
 ---
 import { COIN_COUNT } from '../lib/coins-game';
+import { getCoinsGameMessages, resolveCoinsGameLocale, type CoinsGameLocale } from '../lib/coins-game-i18n';
+
+interface Props {
+	lang?: CoinsGameLocale;
+}
+
+const { lang = 'zh-CN' } = Astro.props;
+const locale = resolveCoinsGameLocale(lang);
+const messages = getCoinsGameMessages(locale);
 ---
 
-<coins-game class="game" role="region" aria-label="十二枚硬币小游戏">
+<coins-game class="game" lang={locale} data-lang={locale} role="region" aria-label={messages.regionLabel}>
 	<div class="game-heading">
-		<h3>动手试试：十二枚硬币</h3>
-		<span>剩余 <strong data-remaining>{COIN_COUNT}</strong> 枚</span>
+		<h3>{messages.heading}</h3>
+		<span>{messages.remainingPrefix}<strong data-remaining>{COIN_COUNT}</strong>{messages.remainingSuffix}</span>
 	</div>
-	<div class="setup" role="group" aria-label="开始新一局">
-		<button type="button" data-action="start-human" disabled>我先手</button>
-		<button type="button" data-action="start-computer" disabled>电脑先手</button>
+	<div class="setup" role="group" aria-label={messages.setupLabel}>
+		<button type="button" data-action="start-human" disabled>{messages.startHuman}</button>
+		<button type="button" data-action="start-computer" disabled>{messages.startComputer}</button>
 	</div>
-	<div class="board-scroll" tabindex="0" role="group" aria-label="硬币棋盘，按原始位置排列，可左右滚动">
+	<div class="board-scroll" tabindex="0" role="group" aria-label={messages.boardLabel}>
 		<div class="coins">
 			{Array.from({ length: COIN_COUNT }, (_, index) => (
 				<button
 					type="button"
 					class="coin"
 					data-coin={index}
-					aria-label={`第 ${index + 1} 枚硬币`}
+					aria-label={messages.coinLabel(index + 1)}
 					aria-pressed="false"
 					disabled
 				>
@@ -30,30 +39,32 @@ import { COIN_COUNT } from '../lib/coins-game';
 	<p class="selection" data-selection></p>
 	<p class="feedback" data-feedback role="status" aria-live="polite" aria-atomic="true"></p>
 	<div class="actions">
-		<button type="button" class="confirm" data-action="confirm" disabled>取走所选硬币</button>
-		<button type="button" data-action="clear" disabled>取消选择</button>
+		<button type="button" class="confirm" data-action="confirm" disabled>{messages.confirm}</button>
+		<button type="button" data-action="clear" disabled>{messages.clear}</button>
 	</div>
 	<div class="game-status">
-		<p class="turn" data-turn role="status" aria-live="polite" aria-atomic="true">选择谁先手，开始新一局。</p>
-		<div class="move-log" tabindex="0" role="log" aria-label="对局记录" aria-live="polite" aria-relevant="additions" aria-atomic="false">
+		<p class="turn" data-turn role="status" aria-live="polite" aria-atomic="true">{messages.turn.idle}</p>
+		<div class="move-log" tabindex="0" role="log" aria-label={messages.movesLabel} aria-live="polite" aria-relevant="additions" aria-atomic="false">
 			<ol data-moves></ol>
 		</div>
 	</div>
 	<details class="help">
-		<summary>玩法说明</summary>
-		<p>每次取 1 枚或原位置相邻的 2 枚，取走最后一枚者输；空位不合拢。</p>
-		<p>点选后确认取走，再次点选可取消。窄屏可横向滑动；点击先手按钮可重新开局。</p>
+		<summary>{messages.helpSummary}</summary>
+		<p>{messages.helpRules}</p>
+		<p>{messages.helpControls}</p>
 	</details>
-	<noscript><p>请启用 JavaScript 来玩这个小游戏；下方的文章和解题说明仍可正常阅读。</p></noscript>
+	<noscript><p>{messages.noscript}</p></noscript>
 </coins-game>
 
 <script>
 	import { INITIAL_BOARD, chooseMove, legalMoves } from '../lib/coins-game';
+	import { getCoinsGameMessages } from '../lib/coins-game-i18n';
 
 	type Player = 'human' | 'computer';
 	type Phase = 'idle' | 'human' | 'thinking' | 'finished';
 
 	class CoinsGameElement extends HTMLElement {
+		#messages = getCoinsGameMessages();
 		#board = INITIAL_BOARD;
 		#selection = 0;
 		#winner: Player | null = null;
@@ -88,6 +99,7 @@ import { COIN_COUNT } from '../lib/coins-game';
 		}
 
 		connectedCallback() {
+			this.#messages = getCoinsGameMessages(this.dataset.lang);
 			this.reset();
 		}
 
@@ -129,8 +141,8 @@ import { COIN_COUNT } from '../lib/coins-game';
 			const selection = this.#selection ^ (1 << index);
 			if (selection !== 0 && !legalMoves(this.#board).includes(selection)) {
 				this.#feedback = (this.#selection & (this.#selection - 1)) !== 0
-					? '每回合最多选择 2 枚硬币。请先取消一枚的选择。'
-					: '两枚硬币必须在原来的位置上相邻，不能跨过空位。';
+					? this.#messages.selectionLimit
+					: this.#messages.adjacencyRequired;
 			} else {
 				this.#selection = selection;
 				this.#feedback = '';
@@ -169,7 +181,7 @@ import { COIN_COUNT } from '../lib/coins-game';
 
 		takeCoins(move: number, player: Player) {
 			this.#board ^= move;
-			this.#moves.push(`${player === 'human' ? '你' : '电脑'}取走了第 ${this.coinNumbers(move)} 枚。`);
+			this.#moves.push(this.#messages.move(player, this.coinNumbers(move)));
 			if (this.#board === 0) {
 				this.#winner = player === 'human' ? 'computer' : 'human';
 				this.#phase = 'finished';
@@ -177,7 +189,7 @@ import { COIN_COUNT } from '../lib/coins-game';
 		}
 
 		coinNumbers(mask: number) {
-			return this.coins.flatMap((_, index) => (mask & (1 << index)) ? [index + 1] : []).join('、');
+			return this.coins.flatMap((_, index) => (mask & (1 << index)) ? [index + 1] : []);
 		}
 
 		focusAvailableCoin() {
@@ -196,7 +208,7 @@ import { COIN_COUNT } from '../lib/coins-game';
 				coin.disabled = !present || !humanTurn;
 				coin.dataset.removed = String(!present);
 				coin.setAttribute('aria-pressed', String((this.#selection & (1 << index)) !== 0));
-				coin.setAttribute('aria-label', `第 ${index + 1} 枚硬币${present ? '' : '，已取走'}`);
+				coin.setAttribute('aria-label', this.#messages.coinLabel(index + 1, !present));
 			}
 			this.querySelector('[data-remaining]')!.textContent = String(remaining);
 			this.querySelector('.board-scroll')!.setAttribute('aria-busy', String(this.#phase === 'thinking'));
@@ -205,18 +217,16 @@ import { COIN_COUNT } from '../lib/coins-game';
 			}
 			this.querySelector<HTMLButtonElement>('[data-action="confirm"]')!.disabled = !humanTurn || this.#selection === 0;
 			this.querySelector<HTMLButtonElement>('[data-action="clear"]')!.disabled = !humanTurn || this.#selection === 0;
-			this.querySelector('[data-selection]')!.textContent = this.#selection
-				? `已选第 ${this.coinNumbers(this.#selection)} 枚。`
-				: '';
+			this.querySelector('[data-selection]')!.textContent = this.#messages.selection(this.coinNumbers(this.#selection));
 			this.querySelector('[data-feedback]')!.textContent = this.#feedback;
 
 			const turn = {
-				idle: '选择谁先手，开始新一局。',
-				human: '轮到你了。',
-				thinking: '电脑思考中…',
+				idle: this.#messages.turn.idle,
+				human: this.#messages.turn.human,
+				thinking: this.#messages.turn.thinking,
 				finished: this.#winner === 'human'
-					? '你赢了！电脑取走了最后一枚硬币。'
-					: '电脑获胜。你取走了最后一枚硬币。',
+					? this.#messages.turn.win
+					: this.#messages.turn.loss,
 			}[this.#phase];
 			const status = this.querySelector('[data-turn]')!;
 			if (status.textContent !== turn) status.textContent = turn;

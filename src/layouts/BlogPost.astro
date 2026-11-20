@@ -8,14 +8,20 @@ import Header from '../components/Header.astro';
 import Giscus from '../components/Giscus.astro';
 import 'katex/dist/katex.min.css';
 
-type Props = CollectionEntry<'blog'>['data'] & { postId: string };
+type Props = CollectionEntry<'blog'>['data'] & {
+	postId: string;
+	translations: { lang: string; href: string }[];
+};
 
-const { title, description, pubDate, updatedDate, heroImage, postId, lang = 'en' } = Astro.props;
+const { title, description, pubDate, updatedDate, heroImage, postId, translationKey, lang = 'en', translations } = Astro.props;
 ---
 
 <html lang={lang}>
 	<head>
 		<BaseHead title={title} description={description} image={heroImage} />
+		{translations.map((translation) => (
+			<link rel="alternate" hreflang={translation.lang} href={new URL(translation.href, Astro.site)} />
+		))}
 		<style>
 			main {
 				width: calc(100% - 2em);
@@ -54,6 +60,19 @@ const { title, description, pubDate, updatedDate, heroImage, postId, lang = 'en'
 			.last-updated-on {
 				font-style: italic;
 			}
+			.article-languages {
+				display: flex;
+				justify-content: center;
+				gap: 1rem;
+				margin: 1rem 0;
+				font-size: 0.875em;
+				line-height: 1.5;
+			}
+			.article-languages [aria-current='page'] {
+				font-weight: 700;
+				color: rgb(var(--gray-dark));
+				text-decoration: none;
+			}
 		</style>
 	</head>
 
@@ -75,10 +94,24 @@ const { title, description, pubDate, updatedDate, heroImage, postId, lang = 'en'
 							)}
 						</div>
 						<h1>{title}</h1>
+						{translations.length > 1 && (
+							<nav class="article-languages" aria-label={lang.startsWith('zh') ? '文章语言' : 'Article language'}>
+								{translations.map((translation) => (
+									<a
+										href={translation.href}
+										lang={translation.lang}
+										hreflang={translation.lang}
+										aria-current={translation.href === `/blog/${postId}/` ? 'page' : undefined}
+									>
+										{translation.lang.startsWith('zh') ? '中文' : 'English'}
+									</a>
+								))}
+							</nav>
+						)}
 						<hr />
 					</div>
 					<slot />
-					<Giscus postId={postId} lang={lang} />
+					<Giscus postId={translationKey ?? postId} lang={lang} />
 				</div>
 			</article>
 		</main>

@@ -253,7 +253,7 @@ const messages = getCoinsGameMessages(locale);
 		padding: 1.25rem;
 		border: 1px solid rgb(var(--gray-light));
 		border-radius: 12px;
-		background: #f8faff;
+		background: var(--game-bg);
 	}
 	.game p {
 		margin: 0;
@@ -284,9 +284,9 @@ const messages = getCoinsGameMessages(locale);
 	button {
 		min-height: 44px;
 		padding: 0.5rem 0.75rem;
-		border: 1px solid #aeb8cc;
+		border: 1px solid var(--game-btn-border);
 		border-radius: 6px;
-		background: #fff;
+		background: var(--game-btn-bg);
 		color: inherit;
 		font: inherit;
 		transition: transform 100ms ease, filter 100ms ease, box-shadow 100ms ease;
@@ -306,7 +306,7 @@ const messages = getCoinsGameMessages(locale);
 	}
 	.help {
 		margin-top: 0.5rem;
-		color: #526079;
+		color: var(--game-help);
 		font-size: 0.875em;
 	}
 	.help summary {
@@ -333,10 +333,10 @@ const messages = getCoinsGameMessages(locale);
 		width: 44px;
 		height: 44px;
 		padding: 0;
-		border: 2px solid #ae852a;
+		border: 2px solid var(--coin-border);
 		border-radius: 50%;
-		background: #f9edc7;
-		color: #59400f;
+		background: var(--coin-bg);
+		color: var(--coin-text);
 		font-weight: 700;
 	}
 	.coin[aria-pressed='true'] {
@@ -346,9 +346,9 @@ const messages = getCoinsGameMessages(locale);
 	}
 	.coin[data-removed='true'] {
 		border-style: dashed;
-		border-color: #b7c1d2;
+		border-color: var(--coin-removed-border);
 		background: transparent;
-		color: #68748a;
+		color: var(--coin-removed-text);
 		text-decoration: line-through;
 	}
 	.game .selection {
@@ -357,7 +357,7 @@ const messages = getCoinsGameMessages(locale);
 	}
 	.game .feedback {
 		min-block-size: 2lh;
-		color: #a32121;
+		color: var(--game-error);
 	}
 	[data-moves]:empty {
 		display: none;
@@ -368,9 +368,9 @@ const messages = getCoinsGameMessages(locale);
 		color: #fff;
 	}
 	.actions button:disabled {
-		border-color: #c8d0df;
-		background: #e9edf5;
-		color: #69758b;
+		border-color: var(--game-disabled-border);
+		background: var(--game-disabled-bg);
+		color: var(--game-disabled-text);
 	}
 	.game-status {
 		margin: 1rem 0 0.5rem;

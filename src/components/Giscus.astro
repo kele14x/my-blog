@@ -37,6 +37,24 @@ const productionOrigin = Astro.site!.origin;
 				const container = document.querySelector('#comments .giscus');
 				if (window.location.origin !== container.dataset.productionOrigin) return;
 
+				const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+				const resolvedTheme = () => {
+					const theme = document.documentElement.dataset.theme;
+					return theme ?? (darkQuery.matches ? 'dark' : 'light');
+				};
+				const syncTheme = () => {
+					const theme = resolvedTheme();
+					container.dataset.theme = theme;
+					const frame = document.querySelector('iframe.giscus-frame');
+					frame?.contentWindow?.postMessage(
+						{ giscus: { setConfig: { theme } } },
+						'https://giscus.app',
+					);
+				};
+				container.dataset.theme = resolvedTheme();
+				document.addEventListener('themechange', syncTheme);
+				darkQuery.addEventListener('change', syncTheme);
+
 				const script = document.createElement('script');
 				script.src = 'https://giscus.app/client.js';
 				script.async = true;

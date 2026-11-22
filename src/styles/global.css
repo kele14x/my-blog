@@ -5,6 +5,7 @@
  */
 
 :root {
+	color-scheme: light;
 	--accent: #2337ff;
 	--accent-dark: #000d8a;
 	--black: 15, 18, 25;
@@ -12,9 +13,89 @@
 	--gray-light: 229, 233, 240;
 	--gray-dark: 34, 41, 57;
 	--gray-gradient: rgba(var(--gray-light), 50%), #fff;
+	--surface: #fff;
+	--page-bg: #fff;
 	--box-shadow:
 		0 2px 6px rgba(var(--gray), 25%), 0 8px 24px rgba(var(--gray), 33%),
 		0 16px 32px rgba(var(--gray), 33%);
+	/* Coins game palette (light). Dark values below. */
+	--game-bg: #f8faff;
+	--game-btn-border: #aeb8cc;
+	--game-btn-bg: #fff;
+	--game-help: #526079;
+	--coin-border: #ae852a;
+	--coin-bg: #f9edc7;
+	--coin-text: #59400f;
+	--coin-removed-border: #b7c1d2;
+	--coin-removed-text: #68748a;
+	--game-error: #a32121;
+	--game-disabled-border: #c8d0df;
+	--game-disabled-bg: #e9edf5;
+	--game-disabled-text: #69758b;
+}
+
+/* Dark palette. On load the header script sets data-theme from the system
+   preference; the toggle flips it for the current page view only. Nothing
+   is stored, so a fresh page load always starts from the system preference.
+   The media query also covers the page before the script runs.
+   Keep the two dark blocks below in sync. */
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--accent: #8b9aff;
+	--accent-dark: #b3bdff;
+	--black: 235, 238, 245;
+	--gray: 148, 160, 185;
+	--gray-light: 52, 60, 78;
+	--gray-dark: 205, 212, 224;
+	--gray-gradient: rgba(var(--gray-light), 40%), #14161c;
+	--surface: #1c1f27;
+	--page-bg: #14161c;
+	--box-shadow:
+		0 2px 6px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 45%),
+		0 16px 32px rgb(0 0 0 / 45%);
+	--game-bg: #1a1e28;
+	--game-btn-border: #4a5570;
+	--game-btn-bg: #242a38;
+	--game-help: #a3adc2;
+	--coin-border: #c9a04a;
+	--coin-bg: #453a1b;
+	--coin-text: #f0d488;
+	--coin-removed-border: #4a5570;
+	--coin-removed-text: #8b96ad;
+	--game-error: #ff8a8a;
+	--game-disabled-border: #3a4256;
+	--game-disabled-bg: #232837;
+	--game-disabled-text: #7d879c;
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		color-scheme: dark;
+		--accent: #8b9aff;
+		--accent-dark: #b3bdff;
+		--black: 235, 238, 245;
+		--gray: 148, 160, 185;
+		--gray-light: 52, 60, 78;
+		--gray-dark: 205, 212, 224;
+		--gray-gradient: rgba(var(--gray-light), 40%), #14161c;
+		--surface: #1c1f27;
+		--page-bg: #14161c;
+		--box-shadow:
+			0 2px 6px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 45%),
+			0 16px 32px rgb(0 0 0 / 45%);
+		--game-bg: #1a1e28;
+		--game-btn-border: #4a5570;
+		--game-btn-bg: #242a38;
+		--game-help: #a3adc2;
+		--coin-border: #c9a04a;
+		--coin-bg: #453a1b;
+		--coin-text: #f0d488;
+		--coin-removed-border: #4a5570;
+		--coin-removed-text: #8b96ad;
+		--game-error: #ff8a8a;
+		--game-disabled-border: #3a4256;
+		--game-disabled-bg: #232837;
+		--game-disabled-text: #7d879c;
+	}
 }
 body {
 	font-family: var(--font-atkinson);
@@ -23,6 +104,7 @@ body {
 	text-align: left;
 	background: linear-gradient(var(--gray-gradient)) no-repeat;
 	background-size: 100% 600px;
+	background-color: var(--page-bg);
 	word-wrap: break-word;
 	overflow-wrap: break-word;
 	color: rgb(var(--gray-dark));
@@ -117,6 +199,13 @@ code {
 	padding: 2px 5px;
 	background-color: rgb(var(--gray-light));
 	border-radius: 2px;
+}
+/* Shiki renders code blocks with github-dark inline colors; they read well
+   on both themes, so pin the block background instead of letting it inherit
+   the inline-code background above. */
+pre.astro-code {
+	background-color: #24292e !important;
+	color: #e1e4e8;
 }
 pre {
 	padding: 1.5em;

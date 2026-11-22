@@ -79,9 +79,23 @@ p {
 .prose p {
 	margin-bottom: 2em;
 }
+/* One consistent vertical rhythm in the article body: every top-level block
+   leaves the same gap below it, so the spacing no longer depends on which
+   element happens to come next. Headings add extra space above, so a section
+   break reads as a break and the heading still sits close to its own text.
+   Margins use rem, because em would resolve against each element's own
+   font-size and reintroduce the inconsistency for headings. */
+.prose > * {
+	margin-top: 0;
+	margin-bottom: 2rem;
+}
+.prose > :is(h1, h2, h3, h4, h5, h6) {
+	margin-top: 2.5rem;
+}
 .prose .katex-display {
 	overflow-x: auto;
 	overflow-y: hidden;
+	margin: 0 0 2rem 0;
 	padding: 0.25em 0;
 }
 textarea {

@@ -3,6 +3,7 @@ title: '8b/10b 编码：直流平衡、编码表与状态机'
 description: '从 UART、SPI 如何同步讲起，理解高速串行链路为什么需要 8b/10b，再通过直流平衡、时钟恢复和一个编码例子看懂它的工作方式。'
 pubDate: '2026-11-20'
 lang: 'zh-Hans'
+translationKey: '8b10b-encoding'
 ---
 
 ## 从 UART、SPI 说起

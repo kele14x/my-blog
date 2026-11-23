@@ -5,6 +5,8 @@ const ARTICLES = [
 	'/blog/12-coins-game-en/',
 	'/blog/8b10b-encoding/',
 	'/blog/8b10b-encoding-en/',
+	'/blog/systemverilog-variable-and-net/',
+	'/blog/systemverilog-variable-and-net-en/',
 ];
 
 /** 16px root font-size × 2rem, the gap every prose block should leave below it. */

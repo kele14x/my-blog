@@ -156,10 +156,10 @@ a:hover {
 	color: var(--accent);
 }
 p {
-	margin-bottom: 1em;
+	margin-bottom: 0.75em;
 }
 .prose p {
-	margin-bottom: 2em;
+	margin-bottom: 1em;
 }
 /* One consistent vertical rhythm in the article body: every top-level block
    leaves the same gap below it, so the spacing no longer depends on which
@@ -169,7 +169,7 @@ p {
    font-size and reintroduce the inconsistency for headings. */
 .prose > * {
 	margin-top: 0;
-	margin-bottom: 2rem;
+	margin-bottom: 1rem;
 }
 .prose > :is(h1, h2, h3, h4, h5, h6) {
 	margin-top: 2.5rem;
@@ -177,7 +177,7 @@ p {
 .prose .katex-display {
 	overflow-x: auto;
 	overflow-y: hidden;
-	margin: 0 0 2rem 0;
+	margin: 0 0 1rem 0;
 	padding: 0.25em 0;
 }
 textarea {
@@ -195,21 +195,55 @@ img {
 	height: auto;
 	border-radius: 8px;
 }
+/* Inline code: a faint accent-tinted chip instead of a heavy gray block,
+   so it reads as code without dominating light-theme paragraphs. */
 code {
-	padding: 2px 5px;
-	background-color: rgb(var(--gray-light));
-	border-radius: 2px;
+	padding: 1px 5px;
+	background-color: color-mix(in srgb, var(--accent) 7%, transparent);
+	color: var(--accent-dark);
+	border-radius: 4px;
+	font-size: 0.9em;
 }
-/* Shiki renders code blocks with github-dark inline colors; they read well
-   on both themes, so pin the block background instead of letting it inherit
-   the inline-code background above. */
+/* Shiki emits github-light/github-dark palettes as --shiki-light/--shiki-dark
+   CSS variables (defaultColor: false in astro.config.mjs). Pick the palette
+   with the same data-theme + media-query pattern as the site colors above.
+   Keep the two dark blocks below in sync. */
+pre.astro-code,
+pre.astro-code span {
+	color: var(--shiki-light);
+	background-color: var(--shiki-light-bg);
+}
 pre.astro-code {
-	background-color: #24292e !important;
-	color: #e1e4e8;
+	border: 1px solid rgb(var(--gray-light));
+}
+/* Line numbers injected by the transformer in astro.config.mjs. The gutter
+   color overrides the Shiki palette rule above (higher specificity). */
+pre.astro-code span.line-number {
+	display: inline-block;
+	width: 2.5em;
+	margin-right: 1.25em;
+	padding-right: 0.75em;
+	text-align: right;
+	color: rgb(var(--gray));
+	border-right: 1px solid rgb(var(--gray-light));
+	user-select: none;
+}
+:root[data-theme='dark'] pre.astro-code,
+:root[data-theme='dark'] pre.astro-code span {
+	color: var(--shiki-dark);
+	background-color: var(--shiki-dark-bg);
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) pre.astro-code,
+	:root:not([data-theme='light']) pre.astro-code span {
+		color: var(--shiki-dark);
+		background-color: var(--shiki-dark-bg);
+	}
 }
 pre {
-	padding: 1.5em;
+	padding: 0.75em 1em;
 	border-radius: 8px;
+	line-height: 1.5;
 }
 pre > code {
 	all: unset;

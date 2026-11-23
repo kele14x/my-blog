@@ -17,6 +17,28 @@ export default defineConfig({
 			remarkPlugins: [remarkMath],
 			rehypePlugins: [rehypeKatex],
 		}),
+		shikiConfig: {
+			themes: {
+				light: 'github-light',
+				dark: 'github-dark',
+			},
+			// Emit only --shiki-light/--shiki-dark CSS variables (no inline
+			// colors); global.css picks the palette from data-theme.
+			defaultColor: false,
+			transformers: [
+				{
+					name: 'line-numbers',
+					line(node, line) {
+						node.children.unshift({
+							type: 'element',
+							tagName: 'span',
+							properties: { class: 'line-number', 'aria-hidden': 'true' },
+							children: [{ type: 'text', value: String(line) }],
+						});
+					},
+				},
+			],
+		},
 	},
 	fonts: [
 		{

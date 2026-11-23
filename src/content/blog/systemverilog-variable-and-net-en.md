@@ -14,7 +14,7 @@ I later read the [Verilog HDL LRM](https://ieeexplore.ieee.org/document/1620780)
 
 This is also exactly why a net can have multiple drivers. A net does not hold a value of its own — it is resolved from everything connected to it, the way a physical wire is. Two drivers pushing different levels onto the same wire is a real, expressible situation:
 
-```verilog
+```system-verilog
 wire w;
 assign w = a;
 assign w = b;
@@ -33,7 +33,7 @@ Note that **"the language allows it" is not the same as "you should write it."**
 
 A variable, on the other hand, *is* the stored value, so it can only have one writer. In Verilog, a `reg` (a variable) simply cannot be assigned with `assign` at all. So what if two `always` blocks both write the same `reg`? That is legal syntactically, but unlike a net it does not "resolve" to a value — whichever block runs last wins, so the result is a **race**, and the simulated value depends on execution order rather than a definite rule:
 
-```verilog
+```system-verilog
 reg r;
 always @(*) if (e) r = a;   // two procedural blocks write the same reg
 always @(*) if (e) r = b;   // => a race, the last writer wins
@@ -43,7 +43,7 @@ When two procedural blocks write the same `reg`, the last writer usually wins in
 
 It seems natural, then, to map `wire` onto combinational logic and `reg` onto real registers in hardware. A `wire` does model a connection, which in the circuit you design is combinational logic. But this does not hold for `reg`: **depending on how you write the code, a `reg` can become combinational logic, a register, or even a latch.**
 
-```verilog
+```system-verilog
 output reg q_comb, q_ff, q_latch;
 
 // 1. assigned on any input change => combinational logic
@@ -74,13 +74,13 @@ SystemVerilog tries to fix this. The [SV-LRM](https://ieeexplore.ieee.org/docume
 
 To declare a net, you use the (simplified) syntax:
 
-```verilog
+```system-verilog
 <net_type> <data_type> <net_identifier>;
 ```
 
 `wire` is one of the built-in net types. For example:
 
-```verilog
+```system-verilog
 wire logic w;
 ```
 
@@ -90,13 +90,13 @@ SystemVerilog has many built-in data types, and the most used is `logic`. The co
 
 To declare a variable, you use the (simplified) syntax:
 
-```verilog
+```system-verilog
 var <data_type> <variable_identifier>;
 ```
 
 The new keyword `var` explicitly declares a variable. For example:
 
-```verilog
+```system-verilog
 var logic v; // same as var reg v;
 ```
 
@@ -125,7 +125,7 @@ This direction-dependence is a common trap: the same `reg b` is a net on an inpu
 
 Here is a simple example that collects the cases above:
 
-```verilog
+```system-verilog
 module variables_and_nets(only_input);
     input only_input;        // a net input port
     wire only_wire;

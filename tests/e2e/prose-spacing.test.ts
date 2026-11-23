@@ -9,8 +9,8 @@ const ARTICLES = [
 	'/blog/systemverilog-variable-and-net-en/',
 ];
 
-/** 16px root font-size × 2rem, the gap every prose block should leave below it. */
-const BODY_GAP = 32;
+/** 16px root font-size × 1rem, the gap every prose block should leave below it. */
+const BODY_GAP = 16;
 /** Headings sit further from the preceding block so a section break reads as a break. */
 const HEADING_GAP = 40;
 

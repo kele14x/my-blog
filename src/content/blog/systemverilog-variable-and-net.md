@@ -14,7 +14,7 @@ translationKey: 'systemverilog-variable-and-net'
 
 这也正好解释了为什么 net 可以有多驱动。net 自己不保存值——它的值是由所有连在它上面的东西共同决议出来的，就像一根真实的导线那样。两个驱动同时往一根导线上推不同的电平，是物理上真实存在、也需要能被表达出来的情况：
 
-```verilog
+```system-verilog
 wire w;
 assign w = a;
 assign w = b;
@@ -33,7 +33,7 @@ assign w = b;
 
 而 variable 本身就是那个被保存的值，所以只能有一个写入者。在 Verilog 里，`reg`（variable）根本不能用 `assign` 来赋值。那么如果两个 `always` 块都去写同一个 `reg` 呢？这在语法上是合法的，但它并不像 net 那样「决议」出一个值——两个过程块谁后执行谁生效，结果是**竞争（race）**，仿真值取决于执行顺序而非一个确定的规则：
 
-```verilog
+```system-verilog
 reg r;
 always @(*) if (e) r = a;
 always @(*) if (e) r = b;
@@ -43,7 +43,7 @@ always @(*) if (e) r = b;
 
 这样看来，把 `wire` 对应到组合逻辑、把 `reg` 对应到硬件里真实的寄存器，似乎很自然。`wire` 确实建模的是一个连接，在设计的电路里就是组合逻辑。但这对于 `reg` 并不成立，**取决于你怎么写代码，一个 `reg` 可以是组合逻辑、可以是寄存器，甚至可以是锁存器（latch）。**
 
-```verilog
+```system-verilog
 output reg q_comb, q_ff, q_latch;
 
 // 1. assigned on any input change => combinational logic
@@ -74,13 +74,13 @@ end
 
 声明一个 net，使用的（简化）语法是：
 
-```verilog
+```system-verilog
 <net_type> <data_type> <net_identifier>;
 ```
 
 `wire` 就是内建的 net 类型之一。例如：
 
-```verilog
+```system-verilog
 wire logic w;
 ```
 
@@ -90,13 +90,13 @@ SystemVerilog 有很多内建数据类型，其中最常用的是 `logic`。上�
 
 声明一个 variable，使用的（简化）语法是：
 
-```verilog
+```system-verilog
 var <data_type> <variable_identifier>;
 ```
 
 这里多了一个新关键字 `var`，用来显式声明 variable。例如：
 
-```verilog
+```system-verilog
 var logic v; // same as var reg v;
 ```
 
@@ -125,7 +125,7 @@ var logic v; // same as var reg v;
 
 下面这个例子把上面几种情况汇总在一起：
 
-```verilog
+```system-verilog
 module variables_and_nets(only_input);
     input only_input;        // a net input port
     wire only_wire;

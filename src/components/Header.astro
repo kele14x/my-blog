@@ -30,17 +30,17 @@ import HeaderLink from './HeaderLink.astro';
 	</nav>
 </header>
 <script>
-	// Two-state toggle: light <-> dark. On load the theme is picked
-	// automatically from the system preference; clicking flips it. The
-	// choice lives only in the DOM (data-theme on <html>), never in
-	// localStorage or cookies, so closing or reloading the page returns
-	// to the system preference.
+	// BaseHead restores this tab's sessionStorage choice before rendering.
+	// Otherwise follow the system until the user chooses light or dark.
+	// The choice survives navigation/reloads without localStorage or cookies.
 	type Theme = 'light' | 'dark';
 
 	const button = document.getElementById('theme-toggle')!;
 	const root = document.documentElement;
 	const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
-	let forced: Theme | null = null;
+	const initialTheme = root.dataset.theme;
+	let forced: Theme | null =
+		initialTheme === 'light' || initialTheme === 'dark' ? initialTheme : null;
 
 	const resolved = (): Theme => forced ?? (darkQuery.matches ? 'dark' : 'light');
 
@@ -57,10 +57,15 @@ import HeaderLink from './HeaderLink.astro';
 
 	button.addEventListener('click', () => {
 		forced = resolved() === 'dark' ? 'light' : 'dark';
+		try {
+			sessionStorage.setItem('theme', forced);
+		} catch {
+			// Keep the in-page toggle working when storage is blocked.
+		}
 		apply();
 	});
 
-	// Follow the system until the user picks a theme on this page.
+	// Follow the system until the user picks a theme in this tab.
 	darkQuery.addEventListener('change', () => {
 		if (forced === null) apply();
 	});
@@ -72,7 +77,7 @@ import HeaderLink from './HeaderLink.astro';
 		margin: 0;
 		padding: 0 1em;
 		background: var(--surface);
-		box-shadow: 0 2px 8px rgba(var(--black), 5%);
+		border-bottom: 1px solid rgb(var(--gray-light));
 	}
 	h2 {
 		margin: 0;

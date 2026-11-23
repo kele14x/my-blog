@@ -12,7 +12,6 @@
 	--gray: 96, 115, 159;
 	--gray-light: 229, 233, 240;
 	--gray-dark: 34, 41, 57;
-	--gray-gradient: rgba(var(--gray-light), 50%), #fff;
 	--surface: #fff;
 	--page-bg: #fff;
 	--box-shadow:
@@ -34,10 +33,9 @@
 	--game-disabled-text: #69758b;
 }
 
-/* Dark palette. On load the header script sets data-theme from the system
-   preference; the toggle flips it for the current page view only. Nothing
-   is stored, so a fresh page load always starts from the system preference.
-   The media query also covers the page before the script runs.
+/* Dark palette. The head restores this tab's saved choice before rendering.
+   The header follows the system preference until the user chooses a theme.
+   The media query also covers pages without a saved choice or JavaScript.
    Keep the two dark blocks below in sync. */
 :root[data-theme='dark'] {
 	color-scheme: dark;
@@ -47,7 +45,6 @@
 	--gray: 148, 160, 185;
 	--gray-light: 52, 60, 78;
 	--gray-dark: 205, 212, 224;
-	--gray-gradient: rgba(var(--gray-light), 40%), #14161c;
 	--surface: #1c1f27;
 	--page-bg: #14161c;
 	--box-shadow:
@@ -76,7 +73,6 @@
 		--gray: 148, 160, 185;
 		--gray-light: 52, 60, 78;
 		--gray-dark: 205, 212, 224;
-		--gray-gradient: rgba(var(--gray-light), 40%), #14161c;
 		--surface: #1c1f27;
 		--page-bg: #14161c;
 		--box-shadow:
@@ -102,9 +98,7 @@ body {
 	margin: 0;
 	padding: 0;
 	text-align: left;
-	background: linear-gradient(var(--gray-gradient)) no-repeat;
-	background-size: 100% 600px;
-	background-color: var(--page-bg);
+	background: var(--page-bg);
 	word-wrap: break-word;
 	overflow-wrap: break-word;
 	color: rgb(var(--gray-dark));

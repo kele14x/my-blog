@@ -1,0 +1,186 @@
+---
+title: 'FEC Basics: Hamming Codes, Syndromes, and SECDED'
+description: 'Start with the Hamming (7,4) code to understand forward error correction, syndromes, matrix representations, and SECDED, then explore general Hamming codes, FEC principles, and common code families.'
+pubDate: '2026-11-24'
+lang: 'en'
+translationKey: 'fec-introduction'
+---
+
+In computing, telecommunications, information theory, and coding theory, **ECC (Error Control Code/Error Correction Code)**, **FEC (Forward Error Correction)**, and **channel coding** refer to roughly the same thing: a class of techniques for transmitting information over unreliable or noisy communication channels while reducing errors. The American mathematician _Richard Wesley Hamming_ pioneered this field in the 1940s and, in 1950, invented the first error-correcting code: the **Hamming (7, 4) code**.
+
+[The story goes](https://en.wikipedia.org/wiki/Hamming_code) that, while working at Bell Labs in the late 1940s, Hamming needed to use the Bell Model V computer. This was an electromechanical relay-based machine that read data and instructions from punched paper tape, taking seconds to read each data item or instruction. The tape was eight-sevenths of an inch wide, with up to six holes per row. When the computer detected an error, it stopped and flashed warning lights. On weekdays, an operator would be there to correct the problem. After hours or on weekends, though, there was no operator, so the machine could only sit there. Hamming often worked on weekends, and this was driving him up the wall: once an error was detected, he had to restart the program and run it again from the beginning. In a recorded interview, Hamming said, “If the machine can detect an error, why can't it locate the error and correct it?” Over the next few years, he worked on error correction and developed increasingly powerful algorithms. In 1950, he published what we now call Hamming codes, which are still used in applications such as ECC memory.
+
+Let me start with the simplest example: the Hamming (7, 4) code.
+
+## The Hamming (7, 4) code
+
+### Overview
+
+The Hamming (7, 4) code operates on binary data—bits with values of 0 or 1. It adds three parity bits to every four data bits, producing seven bits in total. That is why it is called a (7, 4) code. Let the four data bits be $[d_0, d_1, d_2, d_3]$, and let the three parity bits added by the encoder be $[p_0, p_1, p_2]$. They are calculated as follows, with a slightly modified arrangement from the original paper to make the explanation easier to follow:
+
+$$
+\begin{aligned}
+p_0 &= d_0 \oplus d_1 \oplus d_2 \\
+p_1 &= d_1 \oplus d_2 \oplus d_3 \\
+p_2 &= d_0 \oplus d_1 \oplus d_3 \\
+\end{aligned}
+$$
+
+Here, $\oplus$ is the exclusive-OR, or XOR, operator.
+
+These seven bits are written to the paper tape, and the computer checks them after reading them. In the following equations, the primed data and parity bits are the values actually read by the receiver, which may already contain errors:
+
+$$
+\begin{aligned}
+s_0 &= d'_0 \oplus d'_1 \oplus d'_2 \oplus p'_0 \\
+s_1 &= d'_1 \oplus d'_2 \oplus d'_3 \oplus p'_1 \\
+s_2 &= d'_0 \oplus d'_1 \oplus d'_3 \oplus p'_2 \\
+\end{aligned}
+$$
+
+The three check results $s_0, s_1, s_2$ form the **syndrome**, sometimes simply called a check value. “Syndrome” is normally a medical word; in Chinese technical writing, it is also sometimes translated as “check value.” The name makes sense because the computer uses these three bits to check what it has read, and to locate and correct errors. It is a bit like an experienced practitioner of traditional Chinese medicine feeling your pulse and figuring out what is wrong.
+
+Clearly, if no error occurred during transmission, then $s_0 = s_1 = s_2 = 0$.
+
+Now consider what happens when exactly one bit is wrong. Suppose the error is in $d_0$. Then $s_0 = s_2 = 1, s_1 = 0$—remember that an error in a binary bit means that the bit has been flipped. In other words, $[s_0, s_1, s_2] = [1, 0, 1]$. If the error occurs in the parity bit $p_0$ instead, we obtain $[s_0, s_1, s_2] = [1, 0, 0]$.
+
+It is easy to enumerate the syndrome produced by a single-bit error at each possible position:
+
+| Error position | $[s_0, s_1, s_2]$ |
+| -------------- | ----------------- |
+| $d_0$          | $[1, 0, 1]$       |
+| $d_1$          | $[1, 1, 1]$       |
+| $d_2$          | $[1, 1, 0]$       |
+| $d_3$          | $[0, 1, 1]$       |
+| $p_0$          | $[1, 0, 0]$       |
+| $p_1$          | $[0, 1, 0]$       |
+| $p_2$          | $[0, 0, 1]$       |
+
+Taking an all-knowing view for a moment, suppose we knew how many bits had gone wrong during transmission:
+
+- If exactly one bit is wrong: the receiver can use the syndrome to determine which bit is wrong, then flip that bit to correct it. The codeword is seven bits long, so there are seven possible single-bit error positions. Add the no-error case, and three bits are just enough to represent all eight possibilities. In other words, the Hamming (7, 4) code maps every possible single-bit error to a different syndrome. That is a clever trick.
+- If two bits are wrong: we can enumerate all possible two-bit error patterns, of which there are $C_{7}^{2} = 21$. Every one produces a nonzero syndrome, so the Hamming (7, 4) code can “detect two-bit errors.”
+  - But you may already have noticed the problem: the possible syndrome values are also the ones produced by single-bit errors. So unless you have that all-knowing view, a nonzero check result for a received Hamming (7, 4) word does not tell you whether one bit or two bits are wrong.
+- If more bits are wrong: things get worse. The calculated syndrome can even be zero—the effects of the flipped bits happen to cancel out. Once three or more bits are wrong, we may not even notice that an error occurred.
+
+When decoding for single-bit error correction, the receiver follows this strategy:
+
+- If the syndrome is zero, “assume” the received data is correct—in other words, no error was detected.
+- If the syndrome is nonzero, correct it as a single-bit error.
+
+We can see that when the actual number of erroneous bits is two or more, applying single-bit-error decoding to a Hamming (7, 4) codeword produces an incorrect result. In practice, the decoder has essentially no way of knowing how many bits are wrong, so both attempting a correction and concluding that “the data is correct” carry some risk. Its correction guarantee covers only single-bit errors, and the approach assumes that errors affecting two or more bits are sufficiently rare.
+
+### Matrix representation
+
+For convenience, we can express the Hamming (7, 4) code using a generator matrix and a parity-check matrix.
+
+The generator matrix $\bm{G}$ is:
+
+$$
+\bm{G} = \begin{bmatrix}
+1&0&0&0&1&1&0\\
+0&1&0&0&0&1&1\\
+0&0&1&0&1&1&1\\
+0&0&0&1&1&0&1
+\end{bmatrix}
+$$
+
+Encoding is calculated as:
+
+$$
+[d_3, d_2, d_1, d_0] \cdot \bm{G} = [d_3, d_2, d_1, d_0, p_2, p_1, p_0]
+$$
+
+The parity-check matrix $\bm{H}$ is:
+
+$$
+\bm{H} = \begin{bmatrix}
+1&0&1&1&1&0&0\\
+1&1&1&0&0&1&0\\
+0&1&1&1&0&0&1
+\end{bmatrix}
+$$
+
+Arrange the seven bits actually read by the receiver in the codeword order shown above, and call this row vector $\bm{r}$. The syndrome is then calculated as:
+
+$$
+[s_2, s_1, s_0] = \bm{r} \cdot \bm{H}^T
+$$
+
+The superscript $T$ denotes a transpose, and both sides of the equation are row vectors. The row order of $\bm{H}$ gives $[s_2,s_1,s_0]$, which is the reverse of the $[s_0,s_1,s_2]$ ordering in the earlier table. The definitions of the individual components have not changed.
+
+All matrix calculations take place over the binary field $\mathrm{GF}(2)$: scalar addition is XOR ($\oplus$), while scalar multiplication is ordinary binary multiplication, equivalent to logical AND. In other words, each product uses AND, and the terms are summed using XOR. It is easy to verify that $\bm{G} \cdot \bm{H}^T = \bm{0}$, an important property of the encoding and decoding relationship.
+
+## Hamming codes with an extra parity bit — the Hamming (8, 4) code
+
+We have just seen that the Hamming (7, 4) code can correct one-bit errors, but confuses them with errors affecting multiple bits. How can we make this error-correcting scheme more powerful? By adding one overall parity bit to the Hamming (7, 4) code, we can easily extend it to a Hamming (8, 4) code. The extra bit makes the whole codeword have even parity. The generator and parity-check matrices of the extended Hamming (8, 4) code are shown below, with the new overall parity bit placed at the end of the codeword:
+
+$$
+\bm{G} = \begin{bmatrix}
+1&0&0&0&1&1&0&1\\
+0&1&0&0&0&1&1&1\\
+0&0&1&0&1&1&1&0\\
+0&0&0&1&1&0&1&1
+\end{bmatrix}
+$$
+
+$$
+\bm{H} = \begin{bmatrix}
+1&0&1&1&1&0&0&0\\
+1&1&1&0&0&1&0&0\\
+0&1&1&1&0&0&1&0\\
+1&1&0&1&0&0&0&1
+\end{bmatrix}
+$$
+
+Try it yourself: unlike the Hamming (7, 4) code, a two-bit error produces a four-bit syndrome that differs from any syndrome produced by a one-bit error. One-bit and two-bit errors therefore correspond to different syndrome outputs. Provided that each codeword has at most two erroneous bits, the decoder can “safely” correct one-bit errors while detecting—but not correcting—two-bit errors. The Hamming (8, 4) code clearly offers stronger protection than the Hamming (7, 4) code: it can recognize two-bit errors instead of confusing them with one-bit errors. With more errors, that correction guarantee no longer holds, and miscorrection or undetected errors can occur. We must distinguish detection from correction here: used only for detection, the extended Hamming (8, 4) code detects all three-bit errors, but under a single-error correction strategy, a three-bit error may be mistaken for a one-bit error.
+
+Extended Hamming codes were very popular in computer storage systems during the twentieth century. Their capability is known as SECDED—Single Error Correction, Double Error Detection. Many systems today use longer codewords rather than Hamming's original arrangement, while retaining SECDED-level protection. For example, most computer ECC memory provides SECDED-level coding, although the specific code and implementation may differ. Another example is the extended Hamming (72, 64) code used in the block RAM of Xilinx FPGA families, which also provides SECDED.
+
+## General Hamming codes
+
+The Hamming (7, 4) code above is a simple example. General Hamming codes have the following parameters:
+
+- Codeword block length: $n = 2^m - 1$, where $m \geq 2$ is an integer.
+- Message length: $k = 2^m - m - 1$.
+- Code rate: $R=k/n$, the ratio of data bits to codeword bits.
+
+| Codeword length $n$ | Message length $k$ | Code rate $R$ |
+| ------------------- | ------------------ | ------------- |
+| 3                   | 1                  | $1/3 \approx 0.333$ |
+| 7                   | 4                  | $4/7 \approx 0.571$ |
+| 15                  | 11                 | $11/15 \approx 0.733$ |
+| ...                 |                    | |
+| $2^m-1$             | $2^m-m-1$          | $\frac{2^m-m-1}{2^m-1}$ |
+
+I will not go into the construction and exact equations for each value of $n$ here. You can look up the details when you actually need a particular code. Adding one overall even-parity bit to a Hamming code produces an extended Hamming code.
+
+## Why FEC works
+
+Returning to FEC, it can not only detect but also correct errors in messages transmitted through digital communication systems because the encoder sends additional redundant symbols alongside the information symbols. Its core idea is to encode messages with redundancy, which the decoder uses to interpret what it receives. That redundancy allows the receiver to detect errors and potentially correct a limited number of them. From a communications perspective, FEC exploits the constraints between the data and its parity information, so the original message may still be recovered even if some symbols are corrupted. According to Shannon's theory, for a given channel, if the information rate is below channel capacity, suitably chosen codes of sufficient length can make the error probability very low. Simply adding redundancy does not make a system tolerate arbitrary noise.
+
+If there is FEC, there ought to be BEC—Backward Error Correction—although hardly anyone calls it that. This means the receiver detects an error and asks the sender to retransmit. Compared with retransmission, FEC has the obvious advantage that it does not need a reverse channel to send retransmission requests. The trade-off is that additional redundant information must be transmitted.
+
+## Types of FEC
+
+FEC, or ECC, can broadly be divided into two categories: block coding and convolutional coding.
+
+**Block codes** map a fixed number of message symbols to a fixed number of coded symbols. Each data block is processed independently, so the encoder is a memoryless system.
+
+Some common block codes include:
+
+- BCH codes: ECC memory / hard drives / embedded systems.
+- Reed-Solomon (RS) codes: optical links / Ethernet / RAID / DVB.
+- LDPC: Wi-Fi / 5G shared channels / DVB.
+- Polar codes: 5G control channels / Internet of Things.
+
+**Convolutional codes** have memory. They also accept a fixed number of message symbols and produce a fixed number of coded symbols at each step, but their calculations depend not only on the current input symbols, but also on some earlier input symbols.
+
+Some common convolutional codes and their decoding methods include:
+
+- Convolutional codes decoded using the Viterbi algorithm: GSM / WCDMA / satellite communications.
+- Turbo codes: satellite communications / 3G / 4G / WiMAX.
+
+## Summary
+
+Using Hamming codes as an example, we have taken a brief look at how forward error correction works. Hamming codes are a special case of block codes; convolutional codes are another major category. I am not very familiar with convolutional codes, so I will leave them there for now.

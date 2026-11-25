@@ -1,0 +1,313 @@
+---
+import { BIT_LABELS, encode, decode, type Bit } from '../lib/hamming84';
+import { getHammingMessages, type HammingLocale } from '../lib/hamming84-i18n';
+
+interface Props { lang?: HammingLocale; }
+const { lang = 'zh-Hans' } = Astro.props;
+const m = getHammingMessages(lang);
+const initialData: Bit[] = [1, 0, 1, 1];
+const initialCodeword = encode(initialData);
+const initialResult = decode(initialCodeword);
+---
+
+<hamming-demo id="hamming84-demo" class="hamming" lang={lang} data-lang={lang} role="region" aria-label={m.heading}>
+	<header class="demo-heading">
+		<p class="eyebrow">HAMMING (8,4) · SECDED</p>
+		<h3>{m.heading}</h3>
+		<p class="muted">{m.intro}</p>
+	</header>
+
+	<section class="step" data-step="write">
+		<h4><span class="step-number">01</span>{m.write}</h4>
+		<div class="input-bits" role="group" aria-label={m.input}>
+			{initialData.map((bit, i) => (
+				<button type="button" class="bit data-bit" data-input={i} aria-label={m.inputBit(BIT_LABELS[i], bit)} aria-pressed={bit === 1 ? 'true' : 'false'} disabled>
+					<span class="bit-label">{BIT_LABELS[i]}</span>
+					<strong data-value>{bit}</strong>
+				</button>
+			))}
+		</div>
+	</section>
+
+	<section class="step" data-step="inject">
+		<h4><span class="step-number">02</span>{m.inject}</h4>
+		<div class="memory-scroll" tabindex="0" role="group" aria-label={m.memoryLabel}>
+			<div class="memory-board">
+				<div class="bit-grid groups" aria-hidden="true">
+					<span class="data-group">{m.dataGroup}</span>
+					<span class="parity-group">{m.parityGroup}</span>
+					<span>{m.overallGroup}</span>
+				</div>
+				<p class="row-label">{m.original}</p>
+				<div class="bit-grid" role="group" aria-label={m.storedLabel}>
+					{BIT_LABELS.map((label, i) => (
+						<div class:list={['bit', 'reference-bit', i < 4 ? 'data-bit' : 'parity-bit']}>
+							<span class="bit-label">{label}</span>
+							<strong data-original={i}>{initialCodeword[i]}</strong>
+						</div>
+					))}
+				</div>
+				<p class="row-label">{m.memory}</p>
+				<div class="bit-grid" role="group" aria-label={m.memory}>
+					{BIT_LABELS.map((label, i) => (
+						<button type="button" class:list={['bit', i < 4 ? 'data-bit' : 'parity-bit']} data-memory={i} aria-label={m.memoryBit(label, initialCodeword[i], false)} aria-pressed="false" disabled>
+							<span class="bit-label">{label}</span>
+							<strong data-value>{initialCodeword[i]}</strong>
+							<span class="change-marker" data-change aria-hidden="true">·</span>
+						</button>
+					))}
+				</div>
+			</div>
+		</div>
+		<div class="shortcuts">
+			<button type="button" data-action="one" disabled>{m.one}</button>
+			<button type="button" data-action="two" disabled>{m.two}</button>
+			<button type="button" data-action="clear" disabled>{m.clear}</button>
+		</div>
+		<div class="stable-text error-count">
+			{Array.from({ length: 9 }, (_, count) => (
+				<p class="sizing-text" aria-hidden="true">{m.errorCount(count)}</p>
+			))}
+			<p data-count data-outside="false" role="status" aria-live="polite" aria-atomic="true">{m.errorCount(0)}</p>
+		</div>
+		<div class="section-help">
+			<p class="hint scroll-hint">{m.scrollHint}</p>
+		</div>
+	</section>
+
+	<section class="step read-step" data-step="read">
+		<h4><span class="step-number">03</span>{m.read}</h4>
+		<div class="readout" data-readout data-state={initialResult.status} role="status" aria-live="polite" aria-atomic="true">
+			<div class="checks">
+				<div><span>{m.syndrome}</span><strong data-syndrome>{initialResult.syndrome.slice(0, 3).join(' ')}</strong><small>[s0, s1, s2]</small></div>
+				<div><span>{m.overall}</span><strong data-overall>{initialResult.overall}</strong><small>{m.overallHint}</small></div>
+			</div>
+			<div class="verdict-block">
+				<p class="hint">{m.decoderLabel}</p>
+				<div class="stable-text">
+					{[m.clean, ...BIT_LABELS.map(label => m.corrected(label)), m.uncorrectable].map(text => (
+						<p class="verdict sizing-text" aria-hidden="true">{text}</p>
+					))}
+					<p class="verdict" data-verdict>{m.clean}</p>
+				</div>
+			</div>
+			<div class="output" data-output>
+				<p class="hint">{m.outputWord}</p>
+				<div class="output-bits">
+					{BIT_LABELS.map((label, i) => (
+						<span class="output-bit" data-output-bit={i}><small>{label}</small><strong data-value>{initialCodeword[i]}</strong></span>
+					))}
+				</div>
+				<p class="hint">{m.outputData}</p>
+				<div class="stable-text">
+					<p class="decoded-data sizing-text" aria-hidden="true">{m.noOutput}</p>
+					<p class="decoded-data sizing-text" aria-hidden="true">0 0 0 0</p>
+					<p class="decoded-data" data-data>{initialData.join(' ')}</p>
+				</div>
+			</div>
+			<div class="comparison stable-text" data-comparison data-mismatch="false">
+				<p class="sizing-text" aria-hidden="true">{m.match}</p>
+				<p class="sizing-text mismatch" aria-hidden="true">{m.mismatch}</p>
+				<p class="sizing-text" aria-hidden="true">{m.rejected}</p>
+				<p data-actual>{m.match}</p>
+			</div>
+		</div>
+		<div class="section-help">
+			<details class="math-help">
+				<summary>{m.mathTitle}</summary>
+				<p>{m.mathIntro}</p>
+				<p class="matrix-check">{m.mathCheck} = <span data-full-syndrome>[{initialResult.syndrome.join(', ')}]</span></p>
+				<p>{m.mathNote}</p>
+			</details>
+		</div>
+	</section>
+	<noscript><p class="warning">{m.noscript}</p></noscript>
+</hamming-demo>
+
+<script>
+	import { BIT_LABELS, encode, decode, type Bit } from '../lib/hamming84';
+	import { getHammingMessages } from '../lib/hamming84-i18n';
+
+	class HammingDemo extends HTMLElement {
+		#messages = getHammingMessages();
+		#input: Bit[] = [1, 0, 1, 1];
+		#errorMask: Bit[] = [0, 0, 0, 0, 0, 0, 0, 0];
+
+		constructor() {
+			super();
+			this.addEventListener('click', (event) => {
+				if (!(event.target instanceof Element)) return;
+				const button = event.target.closest<HTMLButtonElement>('button');
+				if (!button || button.disabled) return;
+				if (button.dataset.input !== undefined) {
+					const index = Number(button.dataset.input);
+					this.#input[index] = (this.#input[index] ^ 1) as Bit;
+				} else if (button.dataset.memory !== undefined) {
+					const index = Number(button.dataset.memory);
+					this.#errorMask[index] = (this.#errorMask[index] ^ 1) as Bit;
+				} else if (button.dataset.action === 'clear') {
+					this.#errorMask.fill(0);
+				} else if (button.dataset.action === 'one' || button.dataset.action === 'two') {
+					const single = button.dataset.action === 'one';
+					const masks: number[][] = [];
+					for (let first = 0; first < BIT_LABELS.length; first++) {
+						if (single) masks.push([first]);
+						else for (let second = first + 1; second < BIT_LABELS.length; second++) {
+							masks.push([first, second]);
+						}
+					}
+					const candidates = masks.filter(indices => this.#errorMask.some((bit, index) => bit !== Number(indices.includes(index))));
+					const selected = candidates[Math.floor(Math.random() * candidates.length)];
+					this.#errorMask = BIT_LABELS.map<Bit>((_, index) => selected.includes(index) ? 1 : 0);
+				}
+				this.render();
+			});
+		}
+
+		connectedCallback() {
+			this.#messages = getHammingMessages(this.dataset.lang);
+			this.render();
+		}
+
+		text(selector: string, value: string) {
+			const element = this.querySelector(selector)!;
+			if (element.textContent !== value) element.textContent = value;
+		}
+
+		render() {
+			const m = this.#messages;
+			const stored = encode(this.#input);
+			const received = stored.map((bit, i) => (bit ^ this.#errorMask[i]) as Bit);
+			// The decoder sees received bits only, never the input or the error mask.
+			const result = decode(received);
+			const errorCount = this.#errorMask.filter((bit) => bit === 1).length;
+			for (const button of this.querySelectorAll<HTMLButtonElement>('[data-input]')) {
+				const index = Number(button.dataset.input);
+				button.disabled = false;
+				button.querySelector('[data-value]')!.textContent = String(this.#input[index]);
+				button.setAttribute('aria-pressed', String(this.#input[index] === 1));
+				button.setAttribute('aria-label', m.inputBit(BIT_LABELS[index], this.#input[index]));
+			}
+			for (const [i, label] of BIT_LABELS.entries()) {
+				this.text(`[data-original="${i}"]`, String(stored[i]));
+				const button = this.querySelector<HTMLButtonElement>(`[data-memory="${i}"]`)!;
+				const flipped = this.#errorMask[i] === 1;
+				button.disabled = false;
+				button.setAttribute('aria-pressed', String(flipped));
+				button.setAttribute('aria-label', m.memoryBit(label, received[i], flipped));
+				button.title = flipped ? m.flipped : m.unchanged;
+				button.querySelector('[data-value]')!.textContent = String(received[i]);
+				button.querySelector('[data-change]')!.textContent = flipped ? '≠' : '·';
+				const output = this.querySelector<HTMLElement>(`[data-output-bit="${i}"]`)!;
+				output.dataset.corrected = String(result.correctedIndex === i);
+				output.querySelector('[data-value]')!.textContent = result.codeword ? String(result.codeword[i]) : '—';
+			}
+			for (const button of this.querySelectorAll<HTMLButtonElement>('[data-action]')) {
+				button.disabled = false;
+			}
+			this.text('[data-count]', m.errorCount(errorCount));
+			this.querySelector<HTMLElement>('[data-count]')!.dataset.outside = String(errorCount >= 3);
+			this.text('[data-syndrome]', result.syndrome.slice(0, 3).join(' '));
+			this.text('[data-overall]', String(result.overall));
+			this.text('[data-full-syndrome]', `[${result.syndrome.join(', ')}]`);
+			const verdict = result.status === 'clean' ? m.clean
+				: result.status === 'corrected' ? m.corrected(BIT_LABELS[result.correctedIndex!])
+				: m.uncorrectable;
+			this.text('[data-verdict]', verdict);
+			this.querySelector<HTMLElement>('[data-readout]')!.dataset.state = result.status;
+			this.text('[data-data]', result.data ? result.data.join(' ') : m.noOutput);
+			const matches = result.data?.every((bit, i) => bit === this.#input[i]);
+			this.querySelector<HTMLElement>('[data-comparison]')!.dataset.mismatch = String(matches === false);
+			this.text('[data-actual]', !result.data ? m.rejected : matches ? m.match : m.mismatch);
+		}
+	}
+
+	customElements.define('hamming-demo', HammingDemo);
+</script>
+
+<style>
+	.hamming {
+		display: block;
+		padding: 1.5rem;
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 12px;
+		background: var(--game-bg);
+		scroll-margin-top: 1.5rem;
+	}
+	.hamming [hidden] { display: none; }
+	.hamming p { margin: 0; line-height: 1.6; }
+	.hamming .eyebrow { margin-bottom: 0.4rem; font-size: 0.7rem; letter-spacing: 0.12em; color: var(--accent-dark); font-weight: 700; }
+	.hamming h3 { margin: 0 0 0.5rem; font-size: 1.25rem; }
+	.hamming h4 { display: flex; align-items: center; gap: 0.65rem; margin: 0 0 0.9rem; font-size: 1rem; }
+	.hamming .muted, .hamming .hint { color: var(--game-help); font-size: 0.85rem; }
+	.step { padding-top: 1.25rem; margin-top: 1.25rem; border-top: 1px solid rgb(var(--gray-light)); }
+	.step-number { color: var(--accent); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+	.shortcuts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+	.input-bits { display: flex; gap: 0.4rem; }
+	button { min-height: 44px; padding: 0.5rem 0.8rem; border: 1px solid var(--game-btn-border); border-radius: 6px; background: var(--game-btn-bg); color: inherit; font: inherit; font-size: 0.875rem; }
+	button:not(:disabled), summary { cursor: pointer; }
+	button:enabled:hover { border-color: var(--accent); }
+	button:enabled:active { background: color-mix(in srgb, var(--accent) 15%, var(--surface)); }
+	button:focus-visible, summary:focus-visible, .memory-scroll:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+	button:disabled { opacity: 0.55; cursor: not-allowed; }
+	.bit { box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem; padding: 0.4rem 0; border-radius: 6px; min-width: 44px; font-family: ui-monospace, monospace; }
+	.bit strong { font-size: 1.3rem; line-height: 1.25; font-weight: 700; }
+	.bit-label { font-size: 0.72rem; color: var(--game-help); }
+	.data-bit { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+	.parity-bit { background: var(--surface); border-style: dashed; }
+	.input-bits .bit { width: 48px; }
+	.input-bits [aria-pressed='true'] { border-color: var(--accent); color: var(--accent-dark); }
+	.memory-scroll { overflow-x: auto; margin: 0.85rem 0 0.65rem; padding: 0.25rem; }
+	.memory-board { min-width: 394px; }
+	.bit-grid { display: grid; grid-template-columns: repeat(8, minmax(44px, 1fr)); gap: 6px; }
+	.groups { align-items: end; margin-bottom: 0.65rem; font-size: 0.68rem; text-align: center; color: var(--game-help); }
+	.groups span { padding-bottom: 0.25rem; border-bottom: 2px solid rgb(var(--gray-light)); }
+	.groups .data-group { grid-column: span 4; border-color: var(--accent); }
+	.groups .parity-group { grid-column: span 3; }
+	.hamming .row-label { margin: 0.6rem 0 0.4rem; color: var(--game-help); font-size: 0.75rem; }
+	.reference-bit { border: 1px solid rgb(var(--gray-light)); }
+	.reference-bit strong { font-size: 1rem; font-weight: 400; }
+	.reference-bit.parity-bit { border-style: dashed; }
+	[data-memory][aria-pressed='true'] { border: 2px solid var(--game-error); background: color-mix(in srgb, var(--game-error) 8%, var(--surface)); color: var(--game-error); padding: calc(0.4rem - 1px) 0; }
+	.change-marker { font-size: 0.7rem; line-height: 1; }
+	.scroll-hint { display: none; }
+	.shortcuts { margin: 0.65rem 0; }
+	/* Overlapping, inaccessible sizing copies reserve the tallest localized
+	   message at the current width without clipping or a fixed panel height. */
+	.stable-text { display: grid; grid-template-columns: minmax(0, 1fr); }
+	.stable-text > * { grid-area: 1 / 1; min-width: 0; }
+	.sizing-text { visibility: hidden; pointer-events: none; user-select: none; }
+	.hamming .error-count { margin-top: 0.65rem; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+	[data-count][data-outside='true'] { color: var(--game-error); }
+	.hamming .warning { margin-top: 0.6rem; padding: 0.65rem 0.8rem; border-left: 3px solid var(--game-error); color: var(--game-error); font-size: 0.85rem; background: color-mix(in srgb, var(--game-error) 6%, var(--surface)); }
+	.section-help { margin-top: 0.85rem; }
+	.hamming .section-help > p + p { margin-top: 0.5rem; }
+	.readout { padding: 1rem; border: 1px solid rgb(var(--gray-light)); border-radius: 8px; background: var(--surface); }
+	.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+	.checks > div { display: flex; flex-direction: column; }
+	.checks span, .checks small { font-size: 0.72rem; color: var(--game-help); }
+	.checks strong { font-family: ui-monospace, monospace; font-size: 1.7rem; line-height: 1.5; color: rgb(var(--black)); }
+	.hamming .verdict { margin: 0.3rem 0; font-size: 0.95rem; font-weight: 700; }
+	[data-state='corrected'] .verdict { color: var(--accent-dark); }
+	[data-state='uncorrectable'] .verdict { color: var(--game-error); }
+	.output { margin-top: 0.9rem; }
+	.output-bits { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin: 0.3rem 0 0.8rem; }
+	.output-bit { display: flex; flex-direction: column; align-items: center; padding: 0.25rem 0; font-family: ui-monospace, monospace; border: 1px solid rgb(var(--gray-light)); border-radius: 4px; }
+	.output-bit small { font-size: 0.65rem; color: var(--game-help); }
+	[data-corrected='true'] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+	.hamming .decoded-data { margin-top: 0.25rem; font-family: ui-monospace, monospace; font-size: 1.1rem; font-weight: 700; }
+	.comparison { margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid rgb(var(--gray-light)); font-size: 0.85rem; }
+	.comparison .mismatch { font-weight: 700; }
+	.comparison[data-mismatch='true'] [data-actual] { color: var(--game-error); font-weight: 700; }
+	.math-help { margin-top: 1rem; font-size: 0.8rem; color: var(--game-help); }
+	.math-help summary { min-height: 44px; padding: 0.5rem 0; box-sizing: border-box; }
+	.hamming .math-help p { margin-top: 0.65rem; }
+	.matrix-check { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+	@media (max-width: 480px) {
+		.hamming { padding: 1rem; }
+		.scroll-hint { display: block; }
+		.readout { padding: 0.75rem; }
+		.checks { gap: 0.5rem; }
+		.shortcuts button { flex-grow: 1; }
+	}
+</style>

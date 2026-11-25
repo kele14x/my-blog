@@ -6,6 +6,8 @@ lang: 'en'
 translationKey: 'fec-introduction'
 ---
 
+import Hamming84Demo from '../../components/Hamming84Demo.astro';
+
 In computing, telecommunications, information theory, and coding theory, **ECC (Error Control Code/Error Correction Code)**, **FEC (Forward Error Correction)**, and **channel coding** refer to roughly the same thing: a class of techniques for transmitting information over unreliable or noisy communication channels while reducing errors. The American mathematician _Richard Wesley Hamming_ pioneered this field in the 1940s and, in 1950, invented the first error-correcting code: the **Hamming (7, 4) code**.
 
 [The story goes](https://en.wikipedia.org/wiki/Hamming_code) that, while working at Bell Labs in the late 1940s, Hamming needed to use the Bell Model V computer. This was an electromechanical relay-based machine that read data and instructions from punched paper tape, taking seconds to read each data item or instruction. The tape was eight-sevenths of an inch wide, with up to six holes per row. When the computer detected an error, it stopped and flashed warning lights. On weekdays, an operator would be there to correct the problem. After hours or on weekends, though, there was no operator, so the machine could only sit there. Hamming often worked on weekends, and this was driving him up the wall: once an error was detected, he had to restart the program and run it again from the beginning. In a recorded interview, Hamming said, “If the machine can detect an error, why can't it locate the error and correct it?” Over the next few years, he worked on error correction and developed increasingly powerful algorithms. In 1950, he published what we now call Hamming codes, which are still used in applications such as ECC memory.
@@ -78,82 +80,99 @@ The generator matrix $\bm{G}$ is:
 
 $$
 \bm{G} = \begin{bmatrix}
-1&0&0&0&1&1&0\\
-0&1&0&0&0&1&1\\
-0&0&1&0&1&1&1\\
-0&0&0&1&1&0&1
+1&0&0&0&1&0&1\\
+0&1&0&0&1&1&1\\
+0&0&1&0&1&1&0\\
+0&0&0&1&0&1&1
 \end{bmatrix}
 $$
 
 Encoding is calculated as:
 
 $$
-[d_3, d_2, d_1, d_0] \cdot \bm{G} = [d_3, d_2, d_1, d_0, p_2, p_1, p_0]
+[d_0, d_1, d_2, d_3] \cdot \bm{G} = [d_0, d_1, d_2, d_3, p_0, p_1, p_2]
 $$
 
 The parity-check matrix $\bm{H}$ is:
 
 $$
 \bm{H} = \begin{bmatrix}
-1&0&1&1&1&0&0\\
-1&1&1&0&0&1&0\\
-0&1&1&1&0&0&1
+1&1&1&0&1&0&0\\
+0&1&1&1&0&1&0\\
+1&1&0&1&0&0&1
 \end{bmatrix}
 $$
 
 Arrange the seven bits actually read by the receiver in the codeword order shown above, and call this row vector $\bm{r}$. The syndrome is then calculated as:
 
 $$
-[s_2, s_1, s_0] = \bm{r} \cdot \bm{H}^T
+[s_0, s_1, s_2] = \bm{r} \cdot \bm{H}^T
 $$
 
-The superscript $T$ denotes a transpose, and both sides of the equation are row vectors. The row order of $\bm{H}$ gives $[s_2,s_1,s_0]$, which is the reverse of the $[s_0,s_1,s_2]$ ordering in the earlier table. The definitions of the individual components have not changed.
+The superscript $T$ denotes a transpose, and both sides of the equation are row vectors. The syndrome order $[s_0,s_1,s_2]$ matches the earlier equations and table.
 
 All matrix calculations take place over the binary field $\mathrm{GF}(2)$: scalar addition is XOR ($\oplus$), while scalar multiplication is ordinary binary multiplication, equivalent to logical AND. In other words, each product uses AND, and the terms are summed using XOR. It is easy to verify that $\bm{G} \cdot \bm{H}^T = \bm{0}$, an important property of the encoding and decoding relationship.
 
 ## Hamming codes with an extra parity bit — the Hamming (8, 4) code
 
-We have just seen that the Hamming (7, 4) code can correct one-bit errors, but confuses them with errors affecting multiple bits. How can we make this error-correcting scheme more powerful? By adding one overall parity bit to the Hamming (7, 4) code, we can easily extend it to a Hamming (8, 4) code. The extra bit makes the whole codeword have even parity. The generator and parity-check matrices of the extended Hamming (8, 4) code are shown below, with the new overall parity bit placed at the end of the codeword:
+We have just seen that the Hamming (7, 4) code can correct one-bit errors, but confuses them with errors affecting multiple bits. How can we make this error-correcting scheme more powerful? By adding one overall parity bit to the Hamming (7, 4) code, we can easily extend it to a Hamming (8, 4) code. The extra bit makes the whole codeword have even parity. The generator and parity-check matrices of the extended Hamming (8, 4) code are shown below. Calling the new overall parity bit $q$, the codeword order is $[d_0,d_1,d_2,d_3,p_0,p_1,p_2,q]$, and the four-bit syndrome order is $[s_0,s_1,s_2,s_3]$:
 
 $$
 \bm{G} = \begin{bmatrix}
-1&0&0&0&1&1&0&1\\
-0&1&0&0&0&1&1&1\\
-0&0&1&0&1&1&1&0\\
-0&0&0&1&1&0&1&1
+1&0&0&0&1&0&1&1\\
+0&1&0&0&1&1&1&0\\
+0&0&1&0&1&1&0&1\\
+0&0&0&1&0&1&1&1
 \end{bmatrix}
 $$
 
 $$
 \bm{H} = \begin{bmatrix}
-1&0&1&1&1&0&0&0\\
-1&1&1&0&0&1&0&0\\
-0&1&1&1&0&0&1&0\\
-1&1&0&1&0&0&0&1
+1&1&1&0&1&0&0&0\\
+0&1&1&1&0&1&0&0\\
+1&1&0&1&0&0&1&0\\
+1&0&1&1&0&0&0&1
 \end{bmatrix}
 $$
 
 Try it yourself: unlike the Hamming (7, 4) code, a two-bit error produces a four-bit syndrome that differs from any syndrome produced by a one-bit error. One-bit and two-bit errors therefore correspond to different syndrome outputs. Provided that each codeword has at most two erroneous bits, the decoder can “safely” correct one-bit errors while detecting—but not correcting—two-bit errors. The Hamming (8, 4) code clearly offers stronger protection than the Hamming (7, 4) code: it can recognize two-bit errors instead of confusing them with one-bit errors. With more errors, that correction guarantee no longer holds, and miscorrection or undetected errors can occur. We must distinguish detection from correction here: used only for detection, the extended Hamming (8, 4) code detects all three-bit errors, but under a single-error correction strategy, a three-bit error may be mistaken for a one-bit error.
 
-Extended Hamming codes were very popular in computer storage systems during the twentieth century. Their capability is known as SECDED—Single Error Correction, Double Error Detection. Many systems today use longer codewords rather than Hamming's original arrangement, while retaining SECDED-level protection. For example, most computer ECC memory provides SECDED-level coding, although the specific code and implementation may differ. Another example is the extended Hamming (72, 64) code used in the block RAM of Xilinx FPGA families, which also provides SECDED.
+Extended Hamming codes were very popular in computer storage systems during the twentieth century. Their capability is known as SECDED—Single Error Correction, Double Error Detection. Many systems today use longer codewords rather than Hamming's original arrangement, while retaining SECDED-level protection. For example, most computer ECC memory provides SECDED-level coding, although the specific code and implementation may differ.
+
+<Hamming84Demo lang="en" />
 
 ## General Hamming codes
 
-The Hamming (7, 4) code above is a simple example. General Hamming codes have the following parameters:
+The Hamming (7, 4) code above is a simple example. Full-length Hamming codes have the following parameters:
 
 - Codeword block length: $n = 2^m - 1$, where $m \geq 2$ is an integer.
 - Message length: $k = 2^m - m - 1$.
 - Code rate: $R=k/n$, the ratio of data bits to codeword bits.
 
-| Codeword length $n$ | Message length $k$ | Code rate $R$ |
-| ------------------- | ------------------ | ------------- |
-| 3                   | 1                  | $1/3 \approx 0.333$ |
-| 7                   | 4                  | $4/7 \approx 0.571$ |
-| 15                  | 11                 | $11/15 \approx 0.733$ |
-| ...                 |                    | |
-| $2^m-1$             | $2^m-m-1$          | $\frac{2^m-m-1}{2^m-1}$ |
+Adding one overall even-parity bit produces an extended Hamming code with SECDED capability. The second column below gives the extended codeword length; the message length $k$ stays unchanged.
 
-I will not go into the construction and exact equations for each value of $n$ here. You can look up the details when you actually need a particular code. Adding one overall even-parity bit to a Hamming code produces an extended Hamming code.
+<div role="region" aria-label="Hamming and SECDED codeword lengths" tabIndex={0} style={{ overflowX: 'auto' }}>
+
+| Codeword length $n$ | SECDED length $n+1$ | Message length $k$ | Code rate $R$ |
+| ------------------- | ------------------- | ------------------ | ------------- |
+| 3 | 4 | 1 | $1/3 \approx 0.333$ |
+| 7 | 8 | 4 | $4/7 \approx 0.571$ |
+| 15 | 16 | 11 | $11/15 \approx 0.733$ |
+| 31 | 32 | 26 | $26/31 \approx 0.839$ |
+| 63 | 64 | 57 | $57/63 \approx 0.905$ |
+| $2^m-1$ | $2^m$ | $2^m-m-1$ | $\frac{2^m-m-1}{2^m-1}$ |
+
+</div>
+
+I will not go into the construction and exact equations for each value of $n$ here. You can look up the details when you actually need a particular code.
+
+## Shortened codes
+
+The extended codeword lengths in the examples above are nice, round numbers, but the message lengths $k$ are rather awkward. What if we want a message length that is a power of two, such as 64 bits? We can use a **shortened code**. For the systematic codes used here, shortening means fixing some data positions to zero, encoding with those zeros, and then omitting those known positions from the stored or transmitted codeword. The decoder knows which positions were omitted and can conceptually restore the zeros.
+
+For example, the extended (128, 120) Hamming code contains 120 data bits and 8 check bits, including one overall parity bit. Fix $120-64=56$ data positions to zero and omit them, retaining 64 data bits and all 8 check bits. The length becomes $128-56=72$, giving a (72, 64) SECDED code.
+
+Shortening does not reduce minimum distance, so the extended code retains its SECDED capability.
 
 ## Why FEC works
 

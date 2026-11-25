@@ -26,6 +26,25 @@ opens the interactive UI mode; failures keep a trace at `test-results/`, viewabl
 Astro binds to `::1` by default. Pass `--host 127.0.0.1` when starting a server that a
 browser must reach over IPv4, otherwise `localhost` connections fail.
 
+### Browser tests and the execution sandbox
+
+When running Playwright through QwenWork, Chrome may fail during startup inside the
+command-execution sandbox (for example, `SIGABRT` together with `EPERM`). This is a
+browser-launch failure, not a completed page test; investigate the error before
+attributing it to application code.
+
+If the failure indicates sandbox restrictions, request an authorized host retry of
+the same command in the same working directory. Set
+`sandbox_permissions="require_escalated"` on the **shell-execution tool call**, with
+a short `justification`. This is a tool parameter, not a shell environment variable,
+Playwright option, or CLI flag. It requests execution outside the command sandbox
+as the desktop user; it does not automatically grant administrator/root access.
+Do not bypass a denied request or change browser security flags to work around it.
+
+Report the initial launch failure and subsequent test results separately. A rerun
+with `--last-failed` checks only previously failed tests; do not describe it as a
+single successful full-suite run.
+
 ## Documentation
 
 Full documentation: https://docs.astro.build

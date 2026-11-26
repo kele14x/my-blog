@@ -306,7 +306,8 @@ async function expectPlacement(demo: Locator, locale: Locale) {
 	await expect(previous).toContainText('SECDED');
 	const next = demo.locator('xpath=following-sibling::*[not(self::script or self::style)][1]');
 	await expect(next).toHaveJSProperty('tagName', 'H2');
-	await expect(next).toHaveText(locale.generalHeading);
+	// Post headings start with an automatic section number, such as "3 General Hamming codes".
+	await expect(next).toHaveText(new RegExp(`^\\d+(\\.\\d+)* ${locale.generalHeading}$`));
 }
 
 async function expectContained(page: Page, demo: Locator) {

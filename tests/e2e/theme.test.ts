@@ -246,3 +246,20 @@ test('dark theme keeps article text readable', async ({ page }) => {
 	const pre = page.locator('pre.astro-code').first();
 	await expect(pre).toHaveCSS('background-color', 'rgb(36, 41, 46)');
 });
+
+test('section numbers stay dimmer than the heading text in both themes', async ({ page }) => {
+	await page.emulateMedia({ colorScheme: 'light' });
+	await page.goto('/blog/8b10b-encoding-en/');
+	const section = page.locator('.prose h2').first();
+	const number = section.locator('.heading-number');
+	await expect(number).toHaveText('1 ');
+	for (const [theme, headingColor, numberColor] of [
+		['light', 'rgb(15, 18, 25)', 'rgb(96, 115, 159)'],
+		['dark', 'rgb(235, 238, 245)', 'rgb(148, 160, 185)'],
+	] as const) {
+		if (theme === 'dark') await page.locator(TOGGLE).click();
+		await expectTheme(page, theme);
+		await expect(section).toHaveCSS('color', headingColor);
+		await expect(number).toHaveCSS('color', numberColor);
+	}
+});

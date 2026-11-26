@@ -6,6 +6,7 @@ import { unified } from '@astrojs/markdown-remark';
 import { defineConfig, fontProviders } from 'astro/config';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeNumberHeadings from './src/lib/rehype-number-headings.ts';
 
 // https://astro.build/config
 export default defineConfig({
@@ -15,7 +16,7 @@ export default defineConfig({
 	markdown: {
 		processor: unified({
 			remarkPlugins: [remarkMath],
-			rehypePlugins: [rehypeKatex],
+			rehypePlugins: [rehypeNumberHeadings, rehypeKatex],
 		}),
 		shikiConfig: {
 			themes: {

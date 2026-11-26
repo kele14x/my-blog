@@ -23,7 +23,8 @@
     "katex": "^0.19.1",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0",
-    "sharp": "^0.35.0"
+    "sharp": "^0.35.0",
+    "unist-util-visit": "^5.2.0"
   },
   "overrides": {
     "katex": "$katex"

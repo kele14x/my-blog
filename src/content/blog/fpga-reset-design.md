@@ -77,7 +77,7 @@ end
 
 这里有两种常见的同步方式。
 
-### 1. 异步置位，同步释放
+### 异步置位，同步释放
 
 <img src="/images/fpga-reset-design/fpga-async-rst-async.drawio.png" alt="由多个寄存器组成的寄存器链，ARST_IN 连接到每一级的异步预置输入，第一级数据输入接零，最后一级输出 ARST_OUT。" width="781" height="281" loading="lazy" decoding="async" style="background-color: white;" />
 
@@ -91,7 +91,7 @@ end
 
 当复位必须在时钟启动前或时钟停止期间生效时，这种方式很有用。释放则需要等待时钟运行。因为**只有释放过程被同步了，置位过程仍然是异步的**，所以我们将这种同步方式称为“异步置位，同步释放”。一般来说，异步复位寄存器会采用这种方式来同步复位信号。
 
-### 2. 置位和释放都同步
+### 置位和释放都同步
 
 <img src="/images/fpga-reset-design/fpga-async-rst-sync.drawio.png" alt="由时钟驱动的寄存器链，ARST_IN 仅连接到第一级的数据输入，各级复位引脚固定为无效电平，最后一级输出 RST_OUT。" width="781" height="281" loading="lazy" decoding="async" style="background-color: white;" />
 

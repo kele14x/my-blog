@@ -168,6 +168,11 @@ p {
 .prose > :is(h1, h2, h3, h4, h5, h6) {
 	margin-top: 2.5rem;
 }
+/* Section numbers (1, 1.2, 1.2.3) lead every post heading. Keep them quieter
+   than the heading text so the title stays the thing you read. */
+.prose .heading-number {
+	color: rgb(var(--gray));
+}
 .prose .katex-display {
 	overflow-x: auto;
 	overflow-y: hidden;

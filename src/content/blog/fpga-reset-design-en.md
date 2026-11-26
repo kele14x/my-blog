@@ -77,7 +77,7 @@ If reset comes from an external reset pin, another clock domain, or a PLL lock i
 
 Two common synchronization approaches are useful here.
 
-### 1. Asynchronous assertion, synchronous release
+### Asynchronous assertion, synchronous release
 
 <img src="/images/fpga-reset-design/fpga-async-rst-async.drawio.png" alt="A chain of registers with ARST_IN connected to every asynchronous preset input, zero feeding the first data input, and the final output driving ARST_OUT." width="781" height="281" loading="lazy" decoding="async" style="background-color: white;" />
 
@@ -91,7 +91,7 @@ Use the target tool's recognized synchronizer implementation, attributes, and ti
 
 This approach is useful when reset must take effect before the clock starts or while it is stopped. Release waits for clock activity. Because **only the release is synchronized, while assertion remains asynchronous**, we call this approach “asynchronous assertion, synchronous release.” Registers with asynchronous reset commonly use this method to synchronize their reset signal.
 
-### 2. Synchronize both assertion and release
+### Synchronize both assertion and release
 
 <img src="/images/fpga-reset-design/fpga-async-rst-sync.drawio.png" alt="A clocked register chain with ARST_IN feeding only the first data input, reset pins tied inactive, and the final stage driving RST_OUT." width="781" height="281" loading="lazy" decoding="async" style="background-color: white;" />
 

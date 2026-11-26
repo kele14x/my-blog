@@ -1,0 +1,9 @@
+#!/bin/sh
+# Keep the global cloudshell-gitsync pre-push hook working while this repo
+# uses core.hooksPath=.githooks (which overrides the global hooksPath).
+for dir in "$(git config --global core.hooksPath)" "$HOME/.cloudshell-gitsync/hooks"; do
+  if [ -n "$dir" ] && [ -x "$dir/pre-push" ]; then
+    exec "$dir/pre-push" "$@"
+  fi
+done
+exit 0

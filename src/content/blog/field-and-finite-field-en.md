@@ -71,13 +71,19 @@ $GF(p)$ is called a **prime field** and is defined as the "ring of integers modu
 
 $GF(2)$ is the smallest finite field, because by definition a field has at least two distinct elements, $\bold{0}$ and $\bold{1}$. Addition can be simplified to **XOR**, and multiplication to **AND**.
 
-![Addition and multiplication tables for GF(2)](/images/field-and-finite-field/f2-addition-multiplication-tables.png)
+Addition and multiplication tables for $GF(2)$:
+
+| $\oplus$ | $0$ | $1$ |
+| --- | --- | --- |
+| $0$ | $0$ | $1$ |
+| $1$ | $1$ | $0$ |
+
+| $\otimes$ | $0$ | $1$ |
+| --- | --- | --- |
+| $0$ | $0$ | $0$ |
+| $1$ | $0$ | $1$ |
 
 In this document, the GF addition operator is denoted by $+$ when there is no ambiguity with the standard addition operation, or by $\oplus$ to explicitly indicate that the addition is performed over GF elements. The same applies to $\times$ and $\otimes$.
-
-$$
-0 + 1 = 1, \qquad 0 \times 1 = 0
-$$
 
 #### Primitive Elements of Prime Fields
 
@@ -179,7 +185,7 @@ We re-invented the addition and multiplication operations between bits ($GF(2)$)
 
 Just for reference.
 
-### Isomorphic
+### Isomorphism
 
 Isomorphic means there is a one-to-one mapping between the elements of two fields that preserves the field operations (addition and multiplication).
 
@@ -233,9 +239,9 @@ An element $\alpha$ is a primitive element of $GF(q)$ if and only if $\{0, \alph
 
 + $\alpha$ is a generator of $GF(q)$.
 + $\alpha$ is a primitive $(q-1)$-th root of unity in $GF(q)$.
-+ All non-zero elements of $GF(q)$ can be written in the form $\alpha^i$ for some natural number $i$.
++ All nonzero elements of $GF(q)$ can be written in the form $\alpha^i$ for some natural number $i$.
 
-For example, $2$ is a primitive element of the fields $GF(3)$ and $GF(5)$, but not of $GF(7)$.
+Note: if a primitive polynomial is chosen to construct the extension field $GF(2^m)$, then $2$ (i.e. the element $x$) is always a primitive element; if the polynomial used is merely irreducible but not primitive, $2$ may not be a primitive element.
 
 ### Primitive Polynomials
 
@@ -252,7 +258,7 @@ Another definition:
 It has the following properties:
 
 + All primitive polynomials are irreducible, but an irreducible polynomial may not be primitive
-+ A primitive polynomial must have a non-zero constant term.
++ A primitive polynomial must have a nonzero constant term.
 + All primitive polynomials have an odd number of terms, except $x+1$ over $GF(2)$.
 + A primitive polynomial of degree $m$ has $m$ different roots in $GF(p^m)$, all of which are primitive elements
 

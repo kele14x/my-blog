@@ -165,7 +165,7 @@ A **cyclic code** is a special case of a polynomial code: any cyclic shift of a 
 - $g(x)$ divides $x^n - 1$
 - $g(x) h(x) = x^n - 1$, where $h(x)$ is called the parity check polynomial
 
-The cyclic structure means encoder/decoder circuits can be built from simple shift registers with feedback—which is why cyclic codes are so popular in hardware.
+The cyclic structure means encoding and decoding can be expressed as regular shift-and-feedback operations—very simple computations.
 
 Linear, polynomial, and cyclic codes are rarely used on their own—they are more like scaffolding. What engineering actually uses is BCH codes and their special cases, obtained by adding one more carefully designed layer of constraints.
 
@@ -173,7 +173,7 @@ Linear, polynomial, and cyclic codes are rarely used on their own—they are mor
 
 **BCH codes** (Bose–Chaudhuri–Hocquenghem codes) are a class of linear cyclic error-correcting codes constructed with polynomials over finite fields. They were first published by _Alexis Hocquenghem_ in 1959 and independently discovered by _R. C. Bose_ and _D. K. Ray-Chaudhuri_ in 1960.
 
-The key selling point of BCH codes is **precise control of error-correction capability via a "designed distance"**: to correct $t$ bits, construct the code with designed distance $2t+1$, and the minimum distance is guaranteed. Moreover, decoding is purely algebraic (syndromes → error locator polynomial → root finding), consisting entirely of finite-field operations, so hardware complexity and power consumption stay manageable. Formally BCH codes can be defined over any $GF(q)$; this post discusses only binary BCH codes.
+The key selling point of BCH codes is **precise control of error-correction capability via a "designed distance"**: to correct $t$ bits, construct the code with designed distance $2t+1$, and the minimum distance is guaranteed. Moreover, decoding is purely algebraic (syndromes → error locator polynomial → root finding), consisting entirely of finite-field operations with manageable computational complexity. Formally BCH codes can be defined over any $GF(q)$; this post discusses only binary BCH codes.
 
 ### Construction
 
@@ -250,7 +250,7 @@ c(x) &= d(x) \cdot x^{n-k} + r(x)
 \end{aligned}
 $$
 
-They are also linear codes, so $\bm{c} = \bm{d} \cdot \bm{G}$ works as well. In hardware, the division is usually implemented with a linear feedback shift register (LFSR), processing one bit per clock cycle.
+They are also linear codes, so $\bm{c} = \bm{d} \cdot \bm{G}$ works as well. The division can be implemented with a linear feedback shift register (LFSR), processing one bit at a time.
 
 ### Decoding
 
@@ -298,7 +298,7 @@ $$
 Its roots are $X_j^{-1} = \alpha^{-i_j}$: find the roots and you find the error positions. The problem reduces to finding the coefficients $\lambda_i$, which can be done within linear algebra / polynomial arithmetic. The common algorithms are:
 
 - **Peterson-Gorenstein-Zierler (PGZ)**: solve a linear system directly
-- **Berlekamp-Massey (BM)**: iteratively find the shortest LFSR, $O(t^2)$ complexity, most common in hardware
+- **Berlekamp-Massey (BM)**: iteratively find the shortest LFSR, $O(t^2)$ complexity, most common in practice
 - **Sugiyama's algorithm**: based on the extended Euclidean algorithm
 
 ##### The PGZ Algorithm
@@ -325,39 +325,153 @@ $$
 
 ##### Chien Search
 
-Once we have $\Lambda(x)$, we need its roots. There are only $n$ possible error positions, so no general root-finding algorithm is needed: substitute $\alpha^{-i}$ for $i = 0, 1, ..., n-1$ into $\Lambda(x)$ one by one; a zero value means position $i$ is in error. This is the **Chien search**, with complexity $O(n \nu)$, and each term $\lambda_j \alpha^{-ij}$ can be updated recursively as $i$ advances—very friendly to pipelined hardware.
+Once we have $\Lambda(x)$, we need its roots. There are only $n$ possible error positions, so no general root-finding algorithm is needed: substitute $\alpha^{-i}$ for $i = 0, 1, ..., n-1$ into $\Lambda(x)$ one by one; a zero value means position $i$ is in error. This is the **Chien search**, with complexity $O(n \nu)$, and each term $\lambda_j \alpha^{-ij}$ can be updated recursively as $i$ advances—a very regular computation.
 
 #### Step 3: Correction
 
 For binary BCH codes the error value must be $1$: once positions are located, just flip those bits and decoding is done. (Non-binary RS codes also need to compute error values, e.g., with Forney's algorithm—one of the main differences between RS and binary BCH decoding.)
 
-#### A Complete Example: Correcting One Error with BCH (7, 4)
+#### A Complete Example: Correcting Two Errors with BCH (15, 7)
 
-Let's assemble the pieces. Build $GF(2^3)$ with $p(x) = x^3 + x + 1$ (note: a different primitive polynomial from Example 1; the result is still a Hamming (7, 4) code, just with a different codeword arrangement). Then $g(x) = m_1(x) = x^3 + x + 1$ and $\alpha = 2$.
+Let's assemble the pieces and see the full complexity of decoding at $t = 2$. Reuse Example 2: $GF(2^4)$ built with $p(x) = x^4 + x + 1$, $\alpha = 2$, $g(x) = x^8 + x^7 + x^6 + x^4 + 1$.
 
-Send the message $\bm{d} = 1011$, i.e., $d(x) = x^3 + x + 1$. It happens to equal $g(x)$, so after shifting left by $3$ it is still divisible by $g(x)$; the remainder $r(x) = 0$, and the codeword is
+**Encoding.** Send the message $\bm{d} = 1010011$, i.e., $d(x) = x^6 + x^4 + x + 1$. Long division gives the remainder $r(x) = x^6 + x^5 + x^4$, and the codeword is
 
 $$
-c(x) = x^6 + x^4 + x^3, \qquad \bm{c} = 1011000
+c(x) = x^{14} + x^{12} + x^9 + x^8 + x^6 + x^5 + x^4, \qquad \bm{c} = 101001101110000
 $$
 
-Suppose bit $5$ flips in transit (the $x^5$ term), so we receive $\bm{z} = 1111000$. Compute the syndromes (in $GF(2^3)$, $\alpha^7 = 1$):
+**Reception and syndromes.** Suppose bits $3$ and $9$ flip (the $x^3$ and $x^9$ terms), so we receive $\bm{z} = 101000101111000$. Evaluate in $GF(2^4)$ (where $\alpha^{15} = 1$):
 
 $$
 \begin{aligned}
-S_1 &= z(\alpha) = \alpha^5 = \{111\} \\
-S_2 &= z(\alpha^2) = \alpha^{10} = \alpha^3 = \{011\}
+S_1 &= z(\alpha) = \alpha^3 + \alpha^9 = \{0010\} = \alpha \\
+S_2 &= z(\alpha^2) = \alpha^6 + \alpha^{18} = \{0100\} = \alpha^2 \\
+S_3 &= z(\alpha^3) = \alpha^9 + \alpha^{27} = \{0101\} = \alpha^8 \\
+S_4 &= z(\alpha^4) = \alpha^{12} + \alpha^{36} = \{0011\} = \alpha^4
 \end{aligned}
 $$
 
-With $t = 1$, PGZ just solves $S_1 \lambda_1 = S_2$, giving $\lambda_1 = S_2 / S_1 = \alpha^3 / \alpha^5 = \alpha^{-2} = \alpha^5$. Hence
+You can verify $S_2 = S_1^2$ and $S_4 = S_2^2$—the even-indexed syndromes are indeed redundant, though the PGZ matrix form still uses them. Note $S_1 = \alpha$: the syndrome no longer points directly at any error position ($\alpha^3 + \alpha^9$ is a sum of two locators)—this is the essential difficulty at $t \geq 2$.
+
+**PGZ solves for the locator polynomial.** Assume $\nu = t = 2$ and solve
 
 $$
-\Lambda(x) = 1 + \alpha^5 x
+\begin{bmatrix} S_1 & S_2 \\ S_2 & S_3 \end{bmatrix}
+\begin{bmatrix} \lambda_2 \\ \lambda_1 \end{bmatrix}
+=
+\begin{bmatrix} S_3 \\ S_4 \end{bmatrix}
 $$
 
-Chien search: $\Lambda(\alpha^{-5}) = 1 + \alpha^5 \alpha^{-5} = 0$, so the error is at position $i = 5$. Flip bit $5$ to recover $1011000$. The whole procedure is nothing but table lookups, multiplications/divisions, and XORs—that is what "algebraic decoding" means.
+The determinant (in binary, subtraction is XOR):
+
+$$
+\det = S_1 S_3 + S_2^2 = \alpha^9 + \alpha^4 = \{1001\} = \alpha^{14} \neq 0
+$$
+
+Nonzero, so there really are 2 errors—no need to decrement and retry. By Cramer's rule:
+
+$$
+\begin{aligned}
+\lambda_1 &= \frac{S_1 S_4 + S_2 S_3}{\det} = \frac{\alpha^5 + \alpha^{10}}{\alpha^{14}} = \frac{1}{\alpha^{14}} = \alpha \\
+\lambda_2 &= \frac{S_3^2 + S_2 S_4}{\det} = \frac{\alpha + \alpha^6}{\alpha^{14}} = \frac{\alpha^{11}}{\alpha^{14}} = \alpha^{12}
+\end{aligned}
+$$
+
+The numerators are extension-field multiplications plus XORs, and the division is multiplication by $\det^{-1} = \alpha$. Hence
+
+$$
+\Lambda(x) = 1 + \alpha x + \alpha^{12} x^2
+$$
+
+Compare with the $t=1$ case: here we genuinely solved a $2 \times 2$ extension-field system, with several extension-field multiplications and one inversion—the cost of PGZ starts to show.
+
+**Chien search.** Substitute $\alpha^{-i}$ for $i = 0, 1, ..., 14$ one by one. Most positions give nonzero values, e.g., $i = 0$: $\Lambda(1) = 1 + \alpha + \alpha^{12} = \{1100\} \neq 0$. Until:
+
+$$
+\begin{aligned}
+\Lambda(\alpha^{-3}) &= 1 + \alpha \cdot \alpha^{-3} + \alpha^{12} \cdot \alpha^{-6} = 1 + \alpha^{13} + \alpha^6 = 0 \\
+\Lambda(\alpha^{-9}) &= 1 + \alpha \cdot \alpha^{-9} + \alpha^{12} \cdot \alpha^{-18} = 1 + \alpha^7 + \alpha^9 = 0
+\end{aligned}
+$$
+
+The two roots correspond to error positions $i = 3$ and $i = 9$—it took all 15 trials to find them both, the serial $O(n\nu)$ cost of Chien search.
+
+**Correction.** Flip bits $3$ and $9$ to recover $\bm{c} = 101001101110000$; the top $7$ bits give the original message $1010011$.
+
+The full pipeline: 4 extension-field evaluations → solve a $2 \times 2$ system (with inversion) → 15 polynomial evaluations → bit flips. Every step is a finite-field operation—that is what "algebraic decoding" means. We can also see that the decoding complexity grows with $t$.
+
+## Hamming Codes and SECDED
+
+After walking through the full BCH decoding pipeline, this section answers three interlocking questions: what exactly is the relationship between Hamming codes and BCH codes? Can BCH do SECDED? And why does SECDED decoding contain none of those "complex algorithms" like PGZ or Chien search?
+
+### Hamming Codes Are t=1 BCH
+
+Example 1 already gave the conclusion: **primitive Hamming codes are primitive narrow-sense binary BCH codes with designed distance $d = 3$**. Let's see the construction more transparently. With $d = 3$,
+
+$$
+g(x) = \operatorname{LCM}(m_1, m_2)
+$$
+
+and $\alpha^2$ is a conjugate of $\alpha$, so $m_1(x) = m_2(x)$, giving
+
+$$
+g(x) = m_1(x) = p(x)
+$$
+
+The generator polynomial is exactly the degree-$m$ primitive polynomial used to build the field. Parity bits $r = m$, data bits $k = 2^m - 1 - m$—precisely the Hamming code parameters.
+
+The parity check matrix view agrees: a $d = 3$ BCH code is essentially a single extension-field check equation $c(\alpha) = 0$ ($S_2 = S_1^2$ carries no new information). Expanding that equation over $GF(2)$ into $m$ binary equations, the columns of the check matrix are exactly the binary representations of $\alpha^0, \alpha^1, ..., \alpha^{n-1}$—i.e., "every nonzero $m$-bit column appears once", which is the classic definition of the Hamming parity check matrix (up to column ordering).
+
+The qualification again: only **primitive** Hamming codes ($n = 2^m - 1$) belong to the primitive BCH family; shortened Hamming codes are not BCH codes in standard form, and extended Hamming codes are not even cyclic.
+
+### Can BCH Do SECDED?
+
+SECDED (single error correction, double error detection) means correcting $e = 1$ and detecting $s = 2$ errors simultaneously, which requires
+
+$$
+d_{min} \geq e + s + 1 = 4
+$$
+
+But **a bare binary BCH code cannot have exactly $d_{min} = 4$**: even powers $\alpha^{2i}$ are conjugates of $\alpha^i$ and share minimal polynomials, so with designed distance 4,
+
+$$
+g(x) = \operatorname{LCM}(m_1, m_2, m_3) = m_1 \cdot m_3
+$$
+
+which is identical to designed distance 5—the "designed distance 4" code is actually a DEC (double error correction) code with $d_{min} \geq 5$. The minimum distance of a binary primitive narrow-sense BCH code is always odd: $d = 3$ corrects only 1 (2 errors get miscorrected), $d = 5$ already corrects 2, and there is no setting that lands exactly on 4.
+
+**The standard approach: extended BCH.** Add one overall parity bit to the $t = 1$ BCH code (i.e., the Hamming code); $d_{min}$ goes from 3 to 4, giving SECDED. The decoding decision needs only two flags:
+
+| Overall parity | Syndrome | Conclusion |
+| --- | --- | --- |
+| passes | zero | no error |
+| fails | nonzero | 1-bit error, correct via the syndrome |
+| passes | nonzero | 2-bit error, detected but not corrected |
+| fails | zero | the overall parity bit itself is wrong |
+
+The table assumes at most 2 errors. This generalizes the extended Hamming (8, 4) code. The price is that the code is no longer cyclic (length $2^m$ also fails the $2^m - 1$ form), but decoding only gains one overall-parity computation. SECDED in ECC (error-correcting code) memory is essentially this route.
+
+Likewise, a $t = 2$ BCH code (e.g., (15, 7), $d_{min} = 5$) plus overall parity reaches $d_{min} = 6$ and can "correct 2, detect 3" (DECTED)—the real extension value of BCH beyond Hamming codes.
+
+The other route is to use a higher-distance BCH code in a reduced mode: a $d_{min} = 5$ BCH code used with $e = 1, s = 3$ ($1 + 3 + 1 = 5$) covers SECDED and detects one more. But the cost is poor: it spends $2m$ parity bits where extended Hamming needs only $m + 1$. For $m = 4$: BCH (15, 7) spends 8 parity bits; extended Hamming (16, 11) spends only 5. **For SECDED, the optimum is "$t = 1$ BCH + overall parity", i.e., the extended Hamming code**; the point of the BCH framework is generalizing this idea to correcting more bits.
+
+### t=1: The Decoding Operations Become Extremely Simple
+
+Now the third question answers itself: SECDED decoding is simple not because of a "simplified implementation", but because **with correction capability of only 1, the entire algebraic decoding mathematically reduces to extremely simple operations**. Watch each stage degenerate:
+
+1. **Syndrome computation → bit XORs**: $S_i = z(\alpha^i)$ normally requires multiplication in $GF(2^m)$, but at $t = 1$ only $S_1$ carries information ($S_2 = S_1^2$ is redundant), and $S_1 = \bm{z} \cdot \bm{H}^T$ over $GF(2)$ is just XORs of bits—no extension-field multiplication at all.
+2. **PGZ → not needed**: PGZ solves $S_1 \lambda_1 = S_2$, one extension-field division. But there is nothing to solve: for a single error at position $i$, $S_1 = \alpha^i$—**the syndrome value itself encodes the error position**. No locator coefficients needed.
+3. **Chien search → a single table lookup**: Chien search substitutes $\alpha^{-i}$ one by one, $O(n)$ serial. But at $t = 1$, "find $i$ such that $\alpha^i = S_1$" is just a discrete logarithm—one lookup in a log table. The classic Hamming layout uses the syndrome directly as a binary position index, skipping even the lookup.
+4. **Correction → flip one bit**: once located, XOR that bit with $1$.
+5. **SECDED decision → two Boolean flags**: the overall parity plus "is the syndrome zero" combine into the table above.
+
+The whole decoding is nothing but XORs, table lookups, and bit flips—no iteration, no solving systems of equations, no extension-field multiply/divide.
+
+**When are PGZ/BM/Chien actually needed?** At $t \geq 2$. With two errors, $S_1 = \alpha^{i_1} + \alpha^{i_2}$ no longer points at a position directly; only then must you solve for $\Lambda(x)$ and search its roots. BCH for NAND flash error correction ($t = 4 \sim 60+$) is the typical scenario.
+
+In one sentence: **the complexity comes from $t$, not from the name "BCH"**.
 
 ## Summary
 
-This post placed block codes into the finite-field framework: adding linear structure gives linear codes (generator matrix / parity check matrix / syndrome); selecting codewords by divisibility gives polynomial codes; requiring $g(x) \mid x^n-1$ gives cyclic codes. On top of cyclic codes, BCH codes build $g(x)$ from the minimal polynomials of consecutive roots in an extension field, gaining precise control of the designed distance and a purely algebraic decoding pipeline: extension-field syndromes → error locator polynomial (PGZ/BM/Sugiyama) → Chien search → bit flips. Primitive Hamming codes are the $t=1$ special case; the next important special case is the non-binary RS code, to be covered in a future post.
+This post placed block codes into the finite-field framework: adding linear structure gives linear codes (generator matrix / parity check matrix / syndrome); selecting codewords by divisibility gives polynomial codes; requiring $g(x) \mid x^n-1$ gives cyclic codes. On top of cyclic codes, BCH codes build $g(x)$ from the minimal polynomials of consecutive roots in an extension field, gaining precise control of the designed distance and a purely algebraic decoding pipeline: extension-field syndromes → error locator polynomial (PGZ/BM/Sugiyama) → Chien search → bit flips. Primitive Hamming codes are the $t=1$ special case; add one overall parity bit and you get the SECDED of engineering practice, where the decoding operations become extremely simple.

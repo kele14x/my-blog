@@ -1,3 +1,8 @@
+## Before committing
+
+- Before staging Markdown or MDX changes, run AutoCorrect from the repository root on only the files intended for the commit (for example, `autocorrect --fix AGENTS.md`). On macOS, install it with `brew install autocorrect` if needed. Stop if formatting fails.
+- Do not format a partially staged file or one with unrelated edits in place. Keep those edits separate from the changes being formatted and staged. Review the formatter diff, stage only the intended changes, and check `git diff --cached` before committing.
+
 ## Development
 
 When starting the dev server, use background mode:

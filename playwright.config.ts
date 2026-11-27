@@ -20,6 +20,7 @@ export default defineConfig({
 	},
 	webServer: {
 		command: `npm run build && npm run preview -- --host ${HOST} --port ${PORT}`,
+		env: { TZ: 'America/Los_Angeles' }, // Catch UTC dates rendered as the previous day.
 		url: `http://${HOST}:${PORT}/`,
 		reuseExistingServer: true,
 		timeout: 120_000,

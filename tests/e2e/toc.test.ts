@@ -130,6 +130,18 @@ test.describe('table of contents', () => {
 		});
 	});
 
+	for (const width of [320, 375]) {
+		test(`the popup stays inside a ${width}px viewport`, async ({ page }) => {
+			await page.setViewportSize({ width, height: 700 });
+			await page.goto('/blog/8b10b-encoding-en/');
+
+			await page.locator('button.toc-toggle').click();
+			const popup = page.locator('#toc-popup');
+			await expect(popup).toBeVisible();
+			await expect(popup).toBeInViewport({ ratio: 1 });
+		});
+	}
+
 	test('the popup closes on Escape and the button hides on wide screens', async ({ page }) => {
 		await page.setViewportSize({ width: 800, height: 900 });
 		await page.goto('/blog/8b10b-encoding-en/');

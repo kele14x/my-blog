@@ -11,18 +11,21 @@ async function navRects(page: import('@playwright/test').Page) {
 	);
 }
 
-test('active nav link does not shift the nav bar', async ({ page }) => {
-	await page.goto('/');
-	const home = await navRects(page);
+for (const font of ['sans', 'serif']) {
+	test(`active nav link does not shift the nav bar with ${font} fonts`, async ({ page }) => {
+		await page.goto('/');
+		if (font === 'serif') await page.locator('#font-toggle').click();
+		const home = await navRects(page);
 
-	await page.getByRole('link', { name: 'Blog', exact: true }).click();
-	await expect(page.locator('.internal-links a.active')).toHaveText('Blog');
-	expect(await navRects(page)).toEqual(home);
+		await page.getByRole('link', { name: 'Blog', exact: true }).click();
+		await expect(page.locator('.internal-links a.active')).toHaveText('Blog');
+		expect(await navRects(page)).toEqual(home);
 
-	await page.getByRole('link', { name: 'Home', exact: true }).click();
-	await expect(page.locator('.internal-links a.active')).toHaveText('Home');
-	expect(await navRects(page)).toEqual(home);
-});
+		await page.getByRole('link', { name: 'Home', exact: true }).click();
+		await expect(page.locator('.internal-links a.active')).toHaveText('Home');
+		expect(await navRects(page)).toEqual(home);
+	});
+}
 
 test('the blog index uses a page heading and highlights post titles and dates on hover', async ({ page }) => {
 	await page.emulateMedia({ colorScheme: 'light' });

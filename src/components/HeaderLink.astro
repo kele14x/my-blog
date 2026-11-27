@@ -28,7 +28,7 @@ const label = await Astro.slots.render('default');
 	}
 	[data-text]::after {
 		content: attr(data-text);
-		font-weight: bolder;
+		font-weight: 700;
 		height: 0;
 		overflow: hidden;
 		visibility: hidden;
@@ -36,7 +36,7 @@ const label = await Astro.slots.render('default');
 		user-select: none;
 	}
 	a.active [data-text] {
-		font-weight: bolder;
+		font-weight: 700;
 	}
 	a.active {
 		text-decoration: underline;

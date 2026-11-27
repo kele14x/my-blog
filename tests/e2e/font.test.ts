@@ -9,7 +9,7 @@ async function expectFont(page: import('@playwright/test').Page, font: 'sans' | 
 		expect(family).toContain('Georgia');
 	} else {
 		expect(family).not.toContain('Georgia');
-		expect(family.toLowerCase()).toContain('atkinson');
+		expect(family).toContain('system-ui');
 	}
 }
 
@@ -18,6 +18,26 @@ test('defaults to sans with no stored choice', async ({ page }) => {
 	await expectFont(page, 'sans');
 	expect(await page.evaluate(() => sessionStorage.getItem('font'))).toBeNull();
 });
+
+for (const path of ['/', '/blog/fpga-reset-design/']) {
+	test(`reading in both font modes downloads no fonts on ${path}`, async ({ page }) => {
+		const fontRequests: string[] = [];
+		page.on('request', (request) => {
+			if (request.resourceType() === 'font') fontRequests.push(request.url());
+		});
+		await page.goto(path);
+		await expectFont(page, 'sans');
+		await page.evaluate(() => document.fonts.ready);
+		await expect(page.locator('link[rel="preload"][as="font"]')).toHaveCount(0);
+		await page.locator(TOGGLE).click();
+		await expectFont(page, 'serif');
+		await page.evaluate(() => document.fonts.ready);
+		await page.locator(TOGGLE).click();
+		await expectFont(page, 'sans');
+		await page.evaluate(() => document.fonts.ready);
+		expect(fontRequests).toEqual([]);
+	});
+}
 
 test('flips between sans and serif and stores the choice', async ({ page }) => {
 	await page.goto('/');

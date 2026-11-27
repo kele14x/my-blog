@@ -20,15 +20,19 @@ const { title, description, image } = Astro.props;
 <!-- Global Metadata -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<!-- Restore this tab's choice before rendering to avoid a theme flash. -->
+<!-- Restore this tab's choices before rendering to avoid a theme/font flash. -->
 <script is:inline>
 	try {
 		const theme = sessionStorage.getItem('theme');
 		if (theme === 'light' || theme === 'dark') {
 			document.documentElement.dataset.theme = theme;
 		}
+		const font = sessionStorage.getItem('font');
+		if (font === 'serif' || font === 'sans') {
+			document.documentElement.dataset.font = font;
+		}
 	} catch {
-		// Storage may be blocked; fall back to the system theme.
+		// Storage may be blocked; fall back to the system theme and sans font.
 	}
 </script>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

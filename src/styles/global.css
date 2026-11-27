@@ -6,6 +6,9 @@
 
 :root {
 	color-scheme: light;
+	/* Body text font. Sans by default; the header toggle switches to serif
+	   for this tab only (sessionStorage). Code keeps its monospace font. */
+	--font-body: var(--font-atkinson);
 	--accent: #2337ff;
 	--accent-dark: #000d8a;
 	--black: 15, 18, 25;
@@ -93,8 +96,11 @@
 		--game-disabled-text: #7d879c;
 	}
 }
+:root[data-font='serif'] {
+	--font-body: Georgia, 'Iowan Old Style', 'Times New Roman', 'Songti SC', serif;
+}
 body {
-	font-family: var(--font-atkinson);
+	font-family: var(--font-body);
 	margin: 0;
 	padding: 0;
 	text-align: left;

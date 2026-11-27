@@ -26,6 +26,16 @@ import HeaderLink from './HeaderLink.astro';
 					<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
 				</svg>
 			</button>
+			<button
+				type="button"
+				id="font-toggle"
+				class="font-toggle"
+				aria-label="Switch to serif font"
+				title="Switch to serif font"
+			>
+				<span class="icon-serif" aria-hidden="true">Aa</span>
+				<span class="icon-sans" aria-hidden="true">Aa</span>
+			</button>
 		</div>
 	</nav>
 </header>
@@ -72,6 +82,36 @@ import HeaderLink from './HeaderLink.astro';
 
 	apply();
 </script>
+<script>
+	// BaseHead restores this tab's sessionStorage font choice before rendering.
+	// Sans is the default; the choice survives navigation/reloads in this tab
+	// and is gone when the browser session ends, just like the theme choice.
+	type Font = 'sans' | 'serif';
+
+	const fontButton = document.getElementById('font-toggle')!;
+	const htmlRoot = document.documentElement;
+	let font: Font = htmlRoot.dataset.font === 'serif' ? 'serif' : 'sans';
+
+	const applyFont = () => {
+		htmlRoot.dataset.font = font;
+		fontButton.dataset.font = font;
+		const label = font === 'serif' ? 'Switch to sans-serif font' : 'Switch to serif font';
+		fontButton.setAttribute('aria-label', label);
+		fontButton.title = label;
+	};
+
+	fontButton.addEventListener('click', () => {
+		font = font === 'serif' ? 'sans' : 'serif';
+		try {
+			sessionStorage.setItem('font', font);
+		} catch {
+			// Keep the in-page toggle working when storage is blocked.
+		}
+		applyFont();
+	});
+
+	applyFont();
+</script>
 <style>
 	header {
 		margin: 0;
@@ -107,7 +147,8 @@ import HeaderLink from './HeaderLink.astro';
 		display: flex;
 		align-items: center;
 	}
-	.theme-toggle {
+	.theme-toggle,
+	.font-toggle {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -119,11 +160,13 @@ import HeaderLink from './HeaderLink.astro';
 		color: rgb(var(--gray-dark));
 		cursor: pointer;
 	}
-	.theme-toggle:hover {
+	.theme-toggle:hover,
+	.font-toggle:hover {
 		background: rgb(var(--gray-light));
 		color: rgb(var(--black));
 	}
-	.theme-toggle:focus-visible {
+	.theme-toggle:focus-visible,
+	.font-toggle:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
 	}
@@ -136,6 +179,26 @@ import HeaderLink from './HeaderLink.astro';
 		display: none;
 	}
 	.theme-toggle[data-theme='dark'] .icon-light {
+		display: block;
+	}
+	/* Show the "Aa" of the font you would switch to: serif while reading
+	   sans, sans while reading serif. Before the script runs, show serif. */
+	.font-toggle span {
+		font-size: 15px;
+		font-weight: 700;
+		line-height: 20px;
+	}
+	.font-toggle .icon-serif {
+		font-family: Georgia, 'Times New Roman', serif;
+	}
+	.font-toggle .icon-sans {
+		display: none;
+		font-family: var(--font-atkinson);
+	}
+	.font-toggle[data-font='serif'] .icon-serif {
+		display: none;
+	}
+	.font-toggle[data-font='serif'] .icon-sans {
 		display: block;
 	}
 </style>

@@ -111,7 +111,7 @@ test('display math renders as a block', async ({ page }) => {
 test('collapsible tables can be expanded and hold their content', async ({ page }) => {
 	await page.goto('/blog/8b10b-encoding/');
 
-	const details = page.locator('.prose > details').first();
+	const details = page.locator('.prose > details:has(table)').first();
 	const summary = details.locator('summary');
 	await expect(summary).toBeVisible();
 

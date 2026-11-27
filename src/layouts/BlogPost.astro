@@ -1,19 +1,22 @@
 ---
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import type { MarkdownHeading } from 'astro';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import Giscus from '../components/Giscus.astro';
+import TableOfContents from '../components/TableOfContents.astro';
 import 'katex/dist/katex.min.css';
 
 type Props = CollectionEntry<'blog'>['data'] & {
 	postId: string;
 	translations: { lang: string; href: string }[];
+	headings: MarkdownHeading[];
 };
 
-const { title, description, pubDate, updatedDate, heroImage, postId, translationKey, lang = 'en', translations } = Astro.props;
+const { title, description, pubDate, updatedDate, heroImage, postId, translationKey, lang = 'en', translations, headings } = Astro.props;
 ---
 
 <html lang={lang}>
@@ -43,6 +46,27 @@ const { title, description, pubDate, updatedDate, heroImage, postId, translation
 				margin: auto;
 				padding: 1em;
 				color: rgb(var(--gray-dark));
+			}
+			/* Wide screens: lay out article + ToC as one grid group and
+			   center the group, so the page doesn't read as "content left,
+			   panel right". The ToC column (280px) matches the panel width
+			   in TableOfContents.astro. */
+			@media (min-width: 1280px) {
+				article {
+					display: grid;
+					grid-template-columns: minmax(0, 752px) 280px;
+					justify-content: center;
+					column-gap: 20px;
+				}
+				.hero-image {
+					grid-column: 1 / -1;
+				}
+				.prose {
+					grid-column: 1;
+					grid-row: 2;
+					margin: 0;
+					max-width: none;
+				}
 			}
 			.title {
 				margin-bottom: 1em;
@@ -113,6 +137,7 @@ const { title, description, pubDate, updatedDate, heroImage, postId, translation
 					<slot />
 					<Giscus postId={translationKey ?? postId} lang={lang} />
 				</div>
+				<TableOfContents headings={headings} lang={lang} />
 			</article>
 		</main>
 		<Footer />

@@ -1,0 +1,277 @@
+---
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+	headings: MarkdownHeading[];
+	lang?: string;
+}
+
+const { headings, lang = 'en' } = Astro.props;
+// Keep the outline readable: top-level sections and their direct subsections.
+const items = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+const label = lang.startsWith('zh') ? '目录' : 'On this page';
+const closeLabel = lang.startsWith('zh') ? '关闭目录' : 'Close table of contents';
+---
+
+{items.length > 0 && (
+	<Fragment>
+		{/* Wide screens: fixed panel beside the article. */}
+		<nav class="toc" aria-label={label}>
+			<h2>{label}</h2>
+			<ul>
+				{items.map((heading) => (
+					<li class={`depth-${heading.depth}`}>
+						<a href={`#${heading.slug}`}>{heading.text}</a>
+					</li>
+				))}
+			</ul>
+		</nav>
+		{/* Narrow screens: a floating button opens the outline from anywhere
+		    in the page, so readers never scroll back to the top for it. */}
+		<button type="button" class="toc-toggle" aria-expanded="false" aria-controls="toc-popup">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+				<path d="M8 6h13M8 12h13M8 18h13"></path>
+				<path d="M3 6h.01M3 12h.01M3 18h.01"></path>
+			</svg>
+			{label}
+		</button>
+		<nav id="toc-popup" class="toc-popup" aria-label={label} hidden>
+			<div class="toc-popup-head">
+				<h2>{label}</h2>
+				<button type="button" class="toc-close" aria-label={closeLabel}>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+						<path d="M18 6 6 18M6 6l12 12"></path>
+					</svg>
+				</button>
+			</div>
+			<ul>
+				{items.map((heading) => (
+					<li class={`depth-${heading.depth}`}>
+						<a href={`#${heading.slug}`}>{heading.text}</a>
+					</li>
+				))}
+			</ul>
+		</nav>
+	</Fragment>
+)}
+
+<script>
+	// Highlight the section currently being read in both TOC variants.
+	for (const toc of document.querySelectorAll('.toc, .toc-popup')) {
+		const links = Array.from(toc.querySelectorAll<HTMLAnchorElement>('a[href^="#"]'));
+		const targets = links
+			.map((link) => document.getElementById(decodeURIComponent(link.hash.slice(1))))
+			.filter((el): el is HTMLElement => el !== null);
+
+		let active: HTMLAnchorElement | null = null;
+		const setActive = (link: HTMLAnchorElement | null) => {
+			if (link === active) return;
+			active?.removeAttribute('aria-current');
+			active = link;
+			active?.setAttribute('aria-current', 'location');
+		};
+
+		const update = () => {
+			let index = 0;
+			for (let i = 0; i < targets.length; i++) {
+				if (targets[i].getBoundingClientRect().top <= 96) index = i;
+				else break;
+			}
+			setActive(links[index] ?? null);
+		};
+
+		let ticking = false;
+		const requestUpdate = () => {
+			if (ticking) return;
+			ticking = true;
+			requestAnimationFrame(() => {
+				ticking = false;
+				update();
+			});
+		};
+		window.addEventListener('scroll', requestUpdate, { passive: true });
+		window.addEventListener('resize', requestUpdate);
+		update();
+	}
+
+	// Floating button + popup for narrow screens.
+	const toggle = document.querySelector<HTMLButtonElement>('.toc-toggle');
+	const popup = document.getElementById('toc-popup');
+	if (toggle && popup) {
+		const setOpen = (open: boolean) => {
+			popup.hidden = !open;
+			toggle.setAttribute('aria-expanded', String(open));
+			if (open) {
+				popup.querySelector<HTMLAnchorElement>('a[aria-current]')?.focus();
+			} else if (popup.contains(document.activeElement)) {
+				toggle.focus();
+			}
+		};
+		toggle.addEventListener('click', () => setOpen(popup.hidden));
+		popup.querySelector('.toc-close')!.addEventListener('click', () => setOpen(false));
+		// Jump first, then close, so the reader lands on the section.
+		popup.addEventListener('click', (event) => {
+			if ((event.target as HTMLElement).closest('a')) setOpen(false);
+		});
+		document.addEventListener('keydown', (event) => {
+			if (event.key === 'Escape' && !popup.hidden) setOpen(false);
+		});
+		document.addEventListener('click', (event) => {
+			const target = event.target as Node;
+			if (!popup.hidden && !popup.contains(target) && !toggle.contains(target)) setOpen(false);
+		});
+		// If the window grows into the wide layout, drop the popup state.
+		window.matchMedia('(min-width: 1280px)').addEventListener('change', (event) => {
+			if (event.matches && !popup.hidden) setOpen(false);
+		});
+	}
+</script>
+
+<style>
+	/* Wide screens: second column of the article grid (BlogPost.astro),
+	   sticky so it follows the reader down the page. */
+	.toc {
+		grid-column: 2;
+		grid-row: 2;
+		position: sticky;
+		top: 6rem;
+		align-self: start;
+		box-sizing: border-box;
+		width: 100%;
+		max-height: calc(100vh - 8rem);
+		overflow-y: auto;
+		padding-left: 1em;
+		border-left: 1px solid rgb(var(--gray-light));
+		font-size: 0.875em;
+		line-height: 1.5;
+	}
+	/* Not enough room beside the article; the floating button takes over. */
+	@media (max-width: 1279px) {
+		.toc {
+			display: none;
+		}
+	}
+	.toc h2,
+	.toc-popup h2 {
+		margin: 0 0 0.5rem;
+		font-size: 0.8em;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: rgb(var(--gray));
+	}
+	.toc ul,
+	.toc-popup ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.toc li,
+	.toc-popup li {
+		margin: 0;
+	}
+	.toc .depth-3,
+	.toc-popup .depth-3 {
+		padding-left: 1em;
+	}
+	.toc a,
+	.toc-popup a {
+		display: block;
+		padding: 0.2em 0;
+		color: rgb(var(--gray));
+		text-decoration: none;
+	}
+	.toc a:hover,
+	.toc-popup a:hover {
+		color: rgb(var(--black));
+	}
+	.toc a[aria-current='location'],
+	.toc-popup a[aria-current='location'] {
+		color: var(--accent);
+		font-weight: 700;
+	}
+
+	/* Floating toggle + popup: narrow screens only. */
+	.toc-toggle {
+		display: none;
+		position: fixed;
+		right: 1rem;
+		bottom: 1rem;
+		z-index: 40;
+		align-items: center;
+		gap: 0.5em;
+		padding: 0.6em 1em;
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 999px;
+		background: var(--surface);
+		color: rgb(var(--gray-dark));
+		font-family: inherit;
+		font-size: 0.875em;
+		font-weight: 700;
+		line-height: 1;
+		box-shadow: var(--box-shadow);
+		cursor: pointer;
+	}
+	.toc-toggle:hover {
+		color: rgb(var(--black));
+	}
+	.toc-toggle:focus-visible,
+	.toc-close:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	.toc-popup {
+		position: fixed;
+		right: 1rem;
+		bottom: 4.25rem;
+		z-index: 40;
+		width: min(320px, calc(100vw - 2rem));
+		max-height: min(60vh, 480px);
+		overflow-y: auto;
+		padding: 1em;
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 12px;
+		background: var(--surface);
+		box-shadow: var(--box-shadow);
+		font-size: 0.9375em;
+		line-height: 1.5;
+	}
+	@media (max-width: 1279px) {
+		.toc-toggle {
+			display: inline-flex;
+		}
+	}
+	@media (min-width: 1280px) {
+		.toc-popup {
+			display: none;
+		}
+	}
+	.toc-popup-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.toc-popup-head h2 {
+		margin: 0;
+	}
+	.toc-popup ul {
+		margin-top: 0.5em;
+	}
+	.toc-close {
+		display: inline-flex;
+		padding: 0.35em;
+		border: none;
+		border-radius: 6px;
+		background: transparent;
+		color: rgb(var(--gray));
+		cursor: pointer;
+	}
+	.toc-close:hover {
+		background: rgb(var(--gray-light));
+		color: rgb(var(--black));
+	}
+	/* Keep the jumped-to heading clear of the viewport edge. */
+	:global(.prose :is(h2, h3, h4, h5, h6)) {
+		scroll-margin-top: 1.5rem;
+	}
+</style>
